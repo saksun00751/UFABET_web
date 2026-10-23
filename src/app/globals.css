@@ -58,9 +58,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
-  --font-sans: "Sarabun", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Trirong", "Sarabun", serif;
-  --font-deco: "Cinzel", "Trirong", serif;
+  --font-sans: "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --font-deco: "Prompt", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
