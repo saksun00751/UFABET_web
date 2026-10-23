@@ -3,7 +3,7 @@ import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { CrownIcon } from "@/components/casino/icons";
 
-export function Logo({ className, size = "md", tagline = true }: { className?: string; size?: "sm" | "md" | "lg"; tagline?: boolean }) {
+export function Logo({ className, size = "md", tagline = true, hideTextOnMobile = false }: { className?: string; size?: "sm" | "md" | "lg"; tagline?: boolean; hideTextOnMobile?: boolean }) {
   const box = size === "lg" ? "size-18" : size === "sm" ? "size-10" : "size-[clamp(2.5rem,7vw,3rem)]";
   const icon = size === "lg" ? "size-9" : size === "sm" ? "size-5" : "size-6";
   const text = size === "lg" ? "text-3xl" : size === "sm" ? "text-xl" : "text-[clamp(1.2rem,4.5vw,1.5rem)]";
@@ -15,7 +15,7 @@ export function Logo({ className, size = "md", tagline = true }: { className?: s
       >
         <CrownIcon className={icon} />
       </span>
-      <span className="flex flex-col leading-none">
+      <span className={cn("flex-col leading-none", hideTextOnMobile ? "hidden sm:flex" : "flex")}>
         <span className={cn("text-foil font-deco font-black tracking-[0.12em] whitespace-nowrap", text)}>{site.name}</span>
         {tagline && <span className="mt-1 font-deco text-[10px] tracking-[clamp(0.2em,1vw,0.42em)] text-muted-foreground">ROYAL CASINO</span>}
       </span>

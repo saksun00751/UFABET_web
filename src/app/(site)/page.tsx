@@ -10,7 +10,6 @@ import { promotion } from "@/lib/api/member";
 import { normalizePromotions } from "@/lib/api/normalize";
 import { BalanceCard } from "@/components/member/balance-card";
 import { BonusWalletCard } from "@/components/member/bonus-wallet-card";
-import { GameZones } from "@/components/member/game-zones";
 import { PromoCard } from "@/components/member/promo-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -60,7 +59,7 @@ function MemberHome() {
                 </Chip>
                 <span className="flex-1">
                   <span className="text-foil block font-deco text-[clamp(1.4rem,5.5vw,2.25rem)] font-black whitespace-nowrap">PLAY NOW</span>
-                  <span className="block font-display text-base text-ivory sm:text-lg">เข้าล็อบบี้เกม · กีฬา · คาสิโนสด · สล็อต · ยิงปลา</span>
+                  <span className="block font-display text-base text-ivory sm:text-lg">เข้าล็อบบี้เกม</span>
                 </span>
                 <ArrowRight className="size-7 text-gold-2 transition-transform group-hover:translate-x-1" />
               </span>
@@ -85,11 +84,6 @@ function MemberHome() {
             <span className="font-display text-sm font-semibold sm:text-base">{label}</span>
           </Link>
         ))}
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <SectionTitle en="GAME ROOMS" th="ห้องเกม" />
-        <GameZones />
       </section>
 
       {list.length > 0 && (

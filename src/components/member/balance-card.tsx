@@ -15,9 +15,13 @@ export function BalanceCard({ className }: { className?: string }) {
   return (
     <div className={cn("foil-frame rounded-[1.75rem] shadow-2xl", className)}>
       <div className="bg-felt flex h-full flex-col gap-4 rounded-[calc(1.75rem-3px)] p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <span className="font-deco text-[11px] font-bold tracking-[0.3em] text-gold-2">VIP MEMBER</span>
-          <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm text-ivory-muted">ยอดเงินคงเหลือ</div>
+            <div className="text-foil font-deco text-4xl leading-tight font-black tabular-nums sm:text-5xl">{isLoading ? "…" : baht(balance)}</div>
+            <div className="font-deco text-sm tracking-[0.18em] text-ivory-muted">{maskPhone(member?.user_name)}</div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={sync}
@@ -27,13 +31,6 @@ export function BalanceCard({ className }: { className?: string }) {
               <RefreshCw className={cn("size-4", syncing && "animate-spin")} />
             </button>
             <SpadeIcon className="size-7 text-gold-2" />
-          </div>
-        </div>
-        <div>
-          <div className="text-sm text-ivory-muted">ยอดเงินคงเหลือ</div>
-          <div className="text-foil font-deco text-4xl leading-tight font-black tabular-nums sm:text-5xl">{isLoading ? "…" : baht(balance)}</div>
-          <div className="font-deco text-sm tracking-[0.18em] text-ivory-muted">
-            {maskPhone(member?.user_name)} · Nº {member?.code}
           </div>
         </div>
         <div className="mt-auto grid grid-cols-2 gap-3">

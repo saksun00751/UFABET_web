@@ -92,7 +92,7 @@ export function SiteHeader() {
               </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
           </DialogPrimitive.Root>
-          <Logo />
+          <Logo hideTextOnMobile />
           <nav aria-label="เมนูหลัก" className="hidden min-w-0 flex-1 gap-1 [@media(min-width:1200px)]:flex">
             {items.map((n) => {
               const active = n.href === "/" ? pathname === "/" : pathname.startsWith(n.href);
