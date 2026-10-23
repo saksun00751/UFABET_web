@@ -49,7 +49,7 @@ export function useOverview() {
 /** เข้าเกม UFA — POST /game/login แล้วเปิด URL ที่ได้ */
 export function useGameLaunch() {
   const [launching, setLaunching] = React.useState(false);
-  const launch = React.useCallback(async (opts: { newTab?: boolean } = {}) => {
+  const launch = React.useCallback(async (opts: { newTab?: boolean } = { newTab: true }) => {
     const popup = opts.newTab ? window.open("about:blank", "_blank") : null;
     setLaunching(true);
     try {
