@@ -45,7 +45,13 @@ export function RealtimeBridge() {
             },
           },
         });
+        // เชื่อมไม่ได้/subscribe ไม่ผ่าน → เลิกลองใหม่ ไม่ให้ console ถูกรบกวนซ้ำๆ (ยอดเงินยังอัปเดตด้วย polling ทุก 30 วิ)
+        const giveUp = () => client.disconnect();
+        client.connection.bind("state_change", ({ current }: { current: string }) => {
+          if (current === "unavailable" || current === "failed") giveUp();
+        });
         const channel = client.subscribe(channelName);
+        channel.bind("pusher:subscription_error", giveUp);
         const eventName = pickStr(cfg, ["event", "balance_event"], "member.balance.refresh");
         const onRefresh = () => {
           mutate("member/balance");
