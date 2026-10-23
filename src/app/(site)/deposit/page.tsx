@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/normalize";
 import { errorMessage } from "@/lib/api/errors";
 import { baht, toNumber } from "@/lib/format";
+import * as v from "@/lib/validate";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { PageHeader } from "@/components/layout/page-header";
 import { WalletTabs } from "@/components/member/wallet-tabs";
@@ -192,9 +193,13 @@ function QrPayment({ channel, onPaid }: { channel?: DepositChannel; onPaid: () =
   const [amount, setAmount] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [payment, setPayment] = React.useState<Payment | null>(null);
+  const [touched, setTouched] = React.useState(false);
   const state = payment ? paymentState(payment.status) : null;
+  const amountError = v.amount(amount, toNumber(amount));
 
   async function create() {
+    setTouched(true);
+    if (amountError) return;
     setBusy(true);
     try {
       const d = await deposit.createPayment(toNumber(amount), channel?.id || undefined);
@@ -229,8 +234,8 @@ function QrPayment({ channel, onPaid }: { channel?: DepositChannel; onPaid: () =
           <label htmlFor="dep-amount" className="font-display text-lg font-semibold">
             จำนวนเงินที่ต้องการฝาก
           </label>
-          <AmountInput id="dep-amount" value={amount} onChange={setAmount} />
-          <Button size="lg" disabled={busy || toNumber(amount) <= 0} onClick={create}>
+          <AmountInput id="dep-amount" value={amount} onChange={setAmount} onBlur={() => setTouched(true)} error={touched ? amountError : undefined} />
+          <Button size="lg" disabled={busy} onClick={create}>
             {busy && <Loader2 className="animate-spin" />} สร้างรายการฝาก {toNumber(amount) > 0 ? baht(amount) : ""}
           </Button>
         </CardContent>

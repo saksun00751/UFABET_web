@@ -7,6 +7,8 @@ import { coupon } from "@/lib/api/member";
 import { normalizeCoupons } from "@/lib/api/normalize";
 import { errorMessage } from "@/lib/api/errors";
 import { thaiDateTime } from "@/lib/format";
+import * as v from "@/lib/validate";
+import { Field } from "@/components/form/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,15 +22,19 @@ export function CouponPanel() {
   const items = normalizeCoupons(my.data);
   const [code, setCode] = React.useState("");
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [submitted, setSubmitted] = React.useState(false);
+  const codeError = submitted ? v.couponCode(code) : undefined;
 
   async function redeem(e: React.FormEvent) {
     e.preventDefault();
-    if (!code) return;
+    setSubmitted(true);
+    if (v.couponCode(code)) return;
     setBusy("redeem");
     try {
       await coupon.redeem(code);
       toast.success("แลกคูปองสำเร็จ");
       setCode("");
+      setSubmitted(false);
       await Promise.all([my.mutate(), gm("member/balance")]);
     } catch (err) {
       toast.error(errorMessage(err));
@@ -54,16 +60,23 @@ export function CouponPanel() {
     <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <Card className="bg-hero border-edge h-fit">
         <CardContent>
-          <form onSubmit={redeem} className="flex flex-col gap-3">
-            <label htmlFor="coupon-code" className="font-display text-lg font-semibold">
-              กรอกรหัสคูปอง
-            </label>
-            <div className="flex gap-2">
-              <Input id="coupon-code" value={code} onChange={(e) => setCode(e.target.value.trim().toUpperCase())} placeholder="เช่น LUCKY2026" className="bg-card tracking-widest" />
-              <Button type="submit" disabled={!code || busy === "redeem"} className="h-13 rounded-2xl">
-                {busy === "redeem" && <Loader2 className="animate-spin" />} แลก
-              </Button>
-            </div>
+          <form onSubmit={redeem} className="flex flex-col gap-3" noValidate>
+            <Field id="coupon-code" label={<span className="font-display text-lg font-semibold">กรอกรหัสคูปอง</span>} error={codeError}>
+              <div className="flex gap-2">
+                <Input
+                  id="coupon-code"
+                  value={code}
+                  maxLength={32}
+                  aria-invalid={codeError ? true : undefined}
+                  onChange={(e) => setCode(e.target.value.trim().toUpperCase())}
+                  placeholder="เช่น LUCKY2026"
+                  className="bg-card tracking-widest"
+                />
+                <Button type="submit" disabled={busy === "redeem"} className="h-13 rounded-2xl">
+                  {busy === "redeem" && <Loader2 className="animate-spin" />} แลก
+                </Button>
+              </div>
+            </Field>
           </form>
         </CardContent>
       </Card>

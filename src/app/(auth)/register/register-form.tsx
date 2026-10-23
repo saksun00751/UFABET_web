@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BankChip } from "@/components/bank-chip";
 import { digitsOnly } from "@/lib/format";
+import * as v from "@/lib/validate";
+import { useTouched } from "@/hooks/use-touched";
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2 | 3;
@@ -45,6 +47,7 @@ export function RegisterForm() {
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<unknown>(null);
   const [done, setDone] = React.useState<RegisterResult | null>(null);
+  const { touch, show } = useTouched();
 
   React.useEffect(() => {
     if (authenticated && !done) router.replace("/");
@@ -102,11 +105,27 @@ export function RegisterForm() {
     ...(ref ? { referral_code: ref } : {}),
   };
 
-  const step1Ok = !!bank && accNo.length >= 10 && firstname.trim() && lastname.trim() && lookup.state !== "loading";
-  const pwMismatch = password2.length > 0 && password !== password2;
-  const step2Ok = userName.length === 10 && password.length >= 8 && password === password2 && refState !== "invalid" && refState !== "checking";
+  const e1 = {
+    bank: bank ? undefined : "กรุณาเลือกธนาคาร",
+    acc_no: v.accountNo(accNo),
+    firstname: v.personName(firstname, "ชื่อ"),
+    lastname: v.personName(lastname, "นามสกุล"),
+  };
+  const e2 = {
+    user_name: v.phone(userName),
+    password: v.password(password),
+    password_confirmation: v.passwordMatch(password, password2),
+    referral_code: refState === "invalid" ? "รหัสผู้แนะนำไม่ถูกต้อง" : refState === "checking" ? "กำลังตรวจสอบรหัสผู้แนะนำ" : undefined,
+  };
+
+  function next1() {
+    touch(...Object.keys(e1));
+    if (!v.firstError(e1) && lookup.state !== "loading") setStep(2);
+  }
 
   async function goReview() {
+    touch(...Object.keys(e2));
+    if (v.firstError(e2)) return;
     setBusy(true);
     setErr(null);
     try {
@@ -218,10 +237,14 @@ export function RegisterForm() {
                 ))}
               </div>
             )}
-            {fieldError(err, "bank") && <p className="text-sm text-destructive">{fieldError(err, "bank")}</p>}
+            {(show("bank", e1.bank) ?? fieldError(err, "bank")) && (
+              <p role="alert" className="text-sm text-destructive">
+                {show("bank", e1.bank) ?? fieldError(err, "bank")}
+              </p>
+            )}
           </div>
 
-          <Field id="acc_no" label="เลขบัญชี" error={fieldError(err, "acc_no")}>
+          <Field id="acc_no" label="เลขบัญชี" error={show("acc_no", e1.acc_no) ?? fieldError(err, "acc_no")}>
             <Input
               id="acc_no"
               inputMode="numeric"
@@ -229,6 +252,8 @@ export function RegisterForm() {
               maxLength={15}
               value={accNo}
               onChange={(e) => setAccNo(digitsOnly(e.target.value))}
+              onBlur={() => touch("acc_no")}
+              aria-invalid={show("acc_no", e1.acc_no) ? true : undefined}
               className="tracking-wider"
             />
           </Field>
@@ -255,11 +280,11 @@ export function RegisterForm() {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field id="firstname" label="ชื่อ" error={fieldError(err, "firstname")}>
-              <Input id="firstname" autoComplete="given-name" value={firstname} onChange={(e) => setFirstname(e.target.value)} />
+            <Field id="firstname" label="ชื่อ" error={show("firstname", e1.firstname) ?? fieldError(err, "firstname")}>
+              <Input id="firstname" autoComplete="given-name" maxLength={50} value={firstname} onChange={(e) => setFirstname(e.target.value)} onBlur={() => touch("firstname")} aria-invalid={show("firstname", e1.firstname) ? true : undefined} />
             </Field>
-            <Field id="lastname" label="นามสกุล" error={fieldError(err, "lastname")}>
-              <Input id="lastname" autoComplete="family-name" value={lastname} onChange={(e) => setLastname(e.target.value)} />
+            <Field id="lastname" label="นามสกุล" error={show("lastname", e1.lastname) ?? fieldError(err, "lastname")}>
+              <Input id="lastname" autoComplete="family-name" maxLength={50} value={lastname} onChange={(e) => setLastname(e.target.value)} onBlur={() => touch("lastname")} aria-invalid={show("lastname", e1.lastname) ? true : undefined} />
             </Field>
           </div>
           <p className="-mt-2 text-sm text-muted-foreground">ชื่อ-นามสกุลต้องตรงกับบัญชีธนาคาร ใช้สำหรับการถอนเงิน</p>
@@ -270,7 +295,7 @@ export function RegisterForm() {
                 <Search /> ตรวจชื่อ
               </Button>
             )}
-            <Button type="button" size="lg" className="flex-1" disabled={!step1Ok} onClick={() => setStep(2)}>
+            <Button type="button" size="lg" className="flex-1" disabled={lookup.state === "loading"} onClick={next1}>
               ถัดไป
             </Button>
           </div>
@@ -279,7 +304,7 @@ export function RegisterForm() {
 
       {step === 2 && (
         <section className="flex flex-col gap-5">
-          <Field id="reg_user" label="เบอร์โทรศัพท์ (ใช้เป็นชื่อผู้ใช้)" hint="ใช้เบอร์นี้ในการเข้าสู่ระบบ" error={fieldError(err, "user_name")}>
+          <Field id="reg_user" label="เบอร์โทรศัพท์ (ใช้เป็นชื่อผู้ใช้)" hint="ใช้เบอร์นี้ในการเข้าสู่ระบบ" error={show("user_name", e2.user_name) ?? fieldError(err, "user_name")}>
             <Input
               id="reg_user"
               inputMode="numeric"
@@ -288,18 +313,28 @@ export function RegisterForm() {
               maxLength={10}
               value={userName}
               onChange={(e) => setUserName(digitsOnly(e.target.value))}
+              onBlur={() => touch("user_name")}
+              aria-invalid={show("user_name", e2.user_name) ? true : undefined}
             />
           </Field>
-          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 8 ตัวอักษร" error={fieldError(err, "password")}>
-            <PasswordInput id="reg_pw" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 8 ตัวอักษร" error={show("password", e2.password) ?? fieldError(err, "password")}>
+            <PasswordInput
+              id="reg_pw"
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onBlur={() => touch("password")}
+              aria-invalid={show("password", e2.password) ? true : undefined}
+            />
           </Field>
-          <Field id="reg_pw2" label="ยืนยันรหัสผ่าน" error={pwMismatch ? "รหัสผ่านไม่ตรงกัน" : fieldError(err, "password_confirmation")}>
+          <Field id="reg_pw2" label="ยืนยันรหัสผ่าน" error={(password2 || show("password_confirmation", true) ? e2.password_confirmation : undefined) ?? fieldError(err, "password_confirmation")}>
             <PasswordInput
               id="reg_pw2"
               autoComplete="new-password"
               value={password2}
-              aria-invalid={pwMismatch || undefined}
+              aria-invalid={(password2 || show("password_confirmation", true)) && e2.password_confirmation ? true : undefined}
               onChange={(e) => setPassword2(e.target.value)}
+              onBlur={() => touch("password_confirmation")}
             />
           </Field>
           <Field
@@ -329,7 +364,7 @@ export function RegisterForm() {
             <Button type="button" variant="secondary" size="lg" onClick={() => setStep(1)}>
               <ChevronLeft /> กลับ
             </Button>
-            <Button type="button" size="lg" className="flex-1" disabled={!step2Ok || busy} onClick={goReview}>
+            <Button type="button" size="lg" className="flex-1" disabled={busy} onClick={goReview}>
               {busy && <Loader2 className="animate-spin" />}
               ตรวจสอบข้อมูล
             </Button>

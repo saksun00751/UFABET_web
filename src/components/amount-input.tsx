@@ -10,11 +10,15 @@ export function AmountInput({
   value,
   onChange,
   chips = [100, 300, 500, 1000, 3000, 5000],
+  error,
+  onBlur,
 }: {
   id: string;
   value: string;
   onChange: (v: string) => void;
   chips?: number[];
+  error?: string;
+  onBlur?: () => void;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -26,11 +30,19 @@ export function AmountInput({
             inputMode="decimal"
             value={value}
             placeholder="0"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${id}-error` : undefined}
+            onBlur={onBlur}
             onChange={(e) => onChange(e.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1"))}
             className="h-full border-0 bg-transparent px-0 font-deco text-4xl font-black focus-visible:ring-0"
           />
         </div>
       </div>
+      {error && (
+        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
       {chips.length > 0 && (
         <div className="grid grid-cols-3 justify-items-center gap-3 sm:grid-cols-6">
           {chips.map((c) => {

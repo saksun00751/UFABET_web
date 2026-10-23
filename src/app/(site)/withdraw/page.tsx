@@ -9,6 +9,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { useBalance, useProfile } from "@/hooks/use-member";
 import { useIdempotentKey } from "@/hooks/use-idempotent";
 import { baht, toNumber } from "@/lib/format";
+import * as v from "@/lib/validate";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { PageHeader } from "@/components/layout/page-header";
 import { WalletTabs } from "@/components/member/wallet-tabs";
@@ -57,6 +58,7 @@ function Withdraw() {
   const [quoting, setQuoting] = React.useState(false);
   const [confirm, setConfirm] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [touched, setTouched] = React.useState(false);
 
   React.useEffect(() => {
     setQuote(null);
@@ -79,7 +81,8 @@ function Withdraw() {
     return () => clearTimeout(t);
   }, [amt]);
 
-  const invalid = amt <= 0 || (min > 0 && amt < min) || (max > 0 && amt > max) || amt > available;
+  const amountError = v.amount(amount, amt, { min, max, available });
+  const invalid = Boolean(amountError);
 
   async function submit() {
     setBusy(true);
@@ -89,6 +92,7 @@ function Withdraw() {
       toast.success("แจ้งถอนเรียบร้อย", { description: "ระบบกำลังดำเนินการโอนเงินเข้าบัญชีของคุณ" });
       setConfirm(false);
       setAmount("");
+      setTouched(false);
       await Promise.all([gm("member/balance"), elig.mutate()]);
     } catch (err) {
       idem.settle(err);
@@ -140,7 +144,7 @@ function Withdraw() {
               ถอนทั้งหมด
             </Button>
           </div>
-          <AmountInput id="wd-amount" value={amount} onChange={setAmount} chips={[]} />
+          <AmountInput id="wd-amount" value={amount} onChange={setAmount} onBlur={() => setTouched(true)} error={touched ? amountError : undefined} chips={[]} />
           <p className="text-sm text-muted-foreground">
             {min > 0 && <>ถอนขั้นต่ำ {baht(min)} </>}
             {max > 0 && <>· สูงสุด {baht(max)} </>}
@@ -179,7 +183,14 @@ function Withdraw() {
         </div>
       )}
 
-      <Button size="lg" disabled={!eligible || invalid || quoting} onClick={() => setConfirm(true)}>
+      <Button
+        size="lg"
+        disabled={!eligible || quoting}
+        onClick={() => {
+          setTouched(true);
+          if (!invalid) setConfirm(true);
+        }}
+      >
         ยืนยันการถอน
       </Button>
 
