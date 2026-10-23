@@ -41,10 +41,19 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40">
       <div className="overflow-hidden border-b border-gold-3 bg-felt whitespace-nowrap">
-        <div className="mx-auto flex max-w-7xl justify-center gap-7 px-4 py-1.5 font-deco text-[clamp(9px,2.4vw,11px)] font-bold tracking-[0.22em] text-gold-2">
-          <span>◆ ฝาก-ถอนอัตโนมัติ 24 ชม.</span>
-          <span>◆ ROYAL WELCOME BONUS</span>
-          <span>◆ 18+ PLAY RESPONSIBLY</span>
+        <div className="flex w-max animate-marquee py-1.5 lg:w-full lg:animate-none lg:justify-center font-deco text-[clamp(9px,2.4vw,11px)] font-bold tracking-[0.22em] text-gold-2">
+          {[0, 1].map((n) => (
+            <div key={n} className={cn("flex shrink-0", n === 1 && "lg:hidden")} aria-hidden={n === 1 || undefined}>
+              {/* ซ้ำหลายรอบให้วิ่งต่อเนื่องไม่มีช่องว่าง — จอ lg ขึ้นไปแสดงชุดเดียวอยู่กลาง ไม่เลื่อน */}
+              {[0, 1, 2, 3].map((k) => (
+                <div key={k} className={cn("flex shrink-0 gap-7 pr-7 lg:pr-0", k > 0 && "lg:hidden")}>
+                  <span>◆ ฝาก-ถอนอัตโนมัติ 24 ชม.</span>
+                  <span>◆ ROYAL WELCOME BONUS</span>
+                  <span>◆ 18+ PLAY RESPONSIBLY</span>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
       <div className="border-b border-border bg-card/90 backdrop-blur-xl">
