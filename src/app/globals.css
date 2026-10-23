@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ───────── Royal Casino theme presets (6 × light/dark) ─────────
+   html[data-theme="royal|rose|champagne|emerald|burgundy|sapphire"] + class "dark"
+   --g1..g4  = เฉดทอง (สว่าง → เข้ม), --felt* = พื้นโต๊ะ (เข้มเสมอ แม้โหมดสว่าง)
+   --brand   = ทองสำหรับตัวอักษร (อ่านง่ายทั้งสองโหมด)                       */
+:root{--radius:1.25rem;}
+[data-theme="royal"]{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#070708;--felt-1:#120F0A;--felt-2:#1C1710;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#6E5115;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="royal"].dark{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#070708;--felt-1:#120F0A;--felt-2:#1C1710;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#070708;--card:#120F0A;--popover:#120F0A;--secondary:#1C1710;--muted:#1C1710;--accent:#1C1710;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#8A6A2B;--line-strong:#8A6A2B;--brand:#E2B857;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+[data-theme="rose"]{--g1:#FFE3D4;--g2:#E3A587;--g3:#8C5440;--g4:#7E4330;--felt:#0A0708;--felt-1:#160E0E;--felt-2:#221616;--primary:#E3A587;--primary-2:#8C5440;--primary-foreground:#1A1206;--ring:#E3A587;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#7E4330;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="rose"].dark{--g1:#FFE3D4;--g2:#E3A587;--g3:#8C5440;--g4:#7E4330;--felt:#0A0708;--felt-1:#160E0E;--felt-2:#221616;--primary:#E3A587;--primary-2:#8C5440;--primary-foreground:#1A1206;--ring:#E3A587;--background:#0A0708;--card:#160E0E;--popover:#160E0E;--secondary:#221616;--muted:#221616;--accent:#221616;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#8C5440;--line-strong:#8C5440;--brand:#E3A587;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+[data-theme="champagne"]{--g1:#FFF9E8;--g2:#E9D8A6;--g3:#9C8A5C;--g4:#6B5C33;--felt:#0A0A09;--felt-1:#151412;--felt-2:#201E1A;--primary:#E9D8A6;--primary-2:#9C8A5C;--primary-foreground:#1A1206;--ring:#E9D8A6;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#6B5C33;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="champagne"].dark{--g1:#FFF9E8;--g2:#E9D8A6;--g3:#9C8A5C;--g4:#6B5C33;--felt:#0A0A09;--felt-1:#151412;--felt-2:#201E1A;--primary:#E9D8A6;--primary-2:#9C8A5C;--primary-foreground:#1A1206;--ring:#E9D8A6;--background:#0A0A09;--card:#151412;--popover:#151412;--secondary:#201E1A;--muted:#201E1A;--accent:#201E1A;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#9C8A5C;--line-strong:#9C8A5C;--brand:#E9D8A6;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+[data-theme="emerald"]{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#03140D;--felt-1:#072218;--felt-2:#0C2E21;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#6E5115;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="emerald"].dark{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#03140D;--felt-1:#072218;--felt-2:#0C2E21;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#03140D;--card:#072218;--popover:#072218;--secondary:#0C2E21;--muted:#0C2E21;--accent:#0C2E21;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#8A6A2B;--line-strong:#8A6A2B;--brand:#E2B857;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+[data-theme="burgundy"]{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#14050A;--felt-1:#220A12;--felt-2:#2E1019;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#6E5115;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="burgundy"].dark{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#14050A;--felt-1:#220A12;--felt-2:#2E1019;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#14050A;--card:#220A12;--popover:#220A12;--secondary:#2E1019;--muted:#2E1019;--accent:#2E1019;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#8A6A2B;--line-strong:#8A6A2B;--brand:#E2B857;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+[data-theme="sapphire"]{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#050A16;--felt-1:#0B1426;--felt-2:#121D34;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#F6F0E2;--card:#FFFCF4;--popover:#FFFCF4;--secondary:#EEE4CE;--muted:#EEE4CE;--accent:#EEE4CE;--foreground:#1A140B;--card-foreground:#1A140B;--popover-foreground:#1A140B;--secondary-foreground:#1A140B;--accent-foreground:#1A140B;--muted-foreground:#5E5240;--border:rgba(110,81,21,.25);--input:#B8963F;--line-strong:#B8963F;--brand:#6E5115;--success:#1F7A4D;--warning:#8A5A00;--destructive:#A3192B;}
+[data-theme="sapphire"].dark{--g1:#FFF1BF;--g2:#E2B857;--g3:#8A6A2B;--g4:#6E5115;--felt:#050A16;--felt-1:#0B1426;--felt-2:#121D34;--primary:#E2B857;--primary-2:#8A6A2B;--primary-foreground:#1A1206;--ring:#E2B857;--background:#050A16;--card:#0B1426;--popover:#0B1426;--secondary:#121D34;--muted:#121D34;--accent:#121D34;--foreground:#F3EBD8;--card-foreground:#F3EBD8;--popover-foreground:#F3EBD8;--secondary-foreground:#F3EBD8;--accent-foreground:#F3EBD8;--muted-foreground:#B4A88E;--border:rgba(226,184,87,.22);--input:#8A6A2B;--line-strong:#8A6A2B;--brand:#E2B857;--success:#7FE0A8;--warning:#FFC857;--destructive:#FF8A8A;}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-2: var(--primary-2);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-brand: var(--brand);
+  --color-gold-1: var(--g1);
+  --color-gold-2: var(--g2);
+  --color-gold-3: var(--g3);
+  --color-felt: var(--felt);
+  --color-felt-1: var(--felt-1);
+  --color-felt-2: var(--felt-2);
+  --color-line-strong: var(--line-strong);
+  --color-ivory: #F3EBD8;
+  --color-ivory-muted: #C9BC9F;
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --font-sans: "Sarabun", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Trirong", "Sarabun", serif;
+  --font-deco: "Cinzel", "Trirong", serif;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { -webkit-tap-highlight-color: transparent; }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    line-height: 1.7;
+    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+  h1, h2, h3, h4 { @apply font-display; line-height: 1.3; }
+  input, select, textarea { font-size: 16px; }
+}
+
+/* ทองแผ่นฟอยล์ — @utility เพื่อให้ใช้กับ variant ได้ เช่น data-[state=active]:bg-foil */
+@utility bg-foil { background-image: linear-gradient(135deg, var(--g3) 0%, var(--g1) 28%, var(--g2) 50%, var(--g1) 72%, var(--g3) 100%); }
+@utility bg-gold-grad { background-image: linear-gradient(135deg, var(--g3) 0%, var(--g1) 28%, var(--g2) 50%, var(--g1) 72%, var(--g3) 100%); }
+
+@layer utilities {
+  /* ทองแผ่นฟอยล์ */
+  .text-foil {
+    background-image: linear-gradient(135deg, var(--g3) 0%, var(--g1) 28%, var(--g2) 50%, var(--g1) 72%, var(--g3) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  /* พื้นโต๊ะคาสิโน (เข้มเสมอ) */
+  .bg-felt { background-image: radial-gradient(80% 70% at 30% 20%, var(--felt-2) 0%, var(--felt) 70%); color: #F3EBD8; }
+  /* พื้นการ์ดอ่อน ๆ ตามโหมด */
+  .bg-hero { background-image: radial-gradient(90% 120% at 85% 0%, color-mix(in oklab, var(--g2) 16%, transparent) 0%, transparent 60%), linear-gradient(160deg, var(--secondary), var(--card)); }
+  /* แถบหลอดไฟป้ายคาสิโน */
+  .bulbs { background-image: radial-gradient(circle, var(--g1) 0 2.5px, transparent 3.5px); background-size: 22px 14px; background-position: center; height: 14px; }
+  .glow { box-shadow: 0 10px 30px color-mix(in oklab, var(--g2) 32%, transparent); }
+  .text-glow { text-shadow: 0 0 24px color-mix(in oklab, var(--g2) 40%, transparent); }
+  .bg-soft { background-color: color-mix(in oklab, var(--g2) 12%, transparent); }
+  .border-edge { border-color: var(--g2); }
+  /* ชิปโป๊กเกอร์: ใส่ --chip-gap = สีพื้นรอบ ๆ */
+  .chip { border-radius: 9999px; border: 4px dashed var(--chip-gap, var(--felt)); outline: 1px solid var(--g2); }
+  /* ซุ้มโค้ง Art Deco */
+  .arch { border-radius: 999px 999px 1.5rem 1.5rem; }
+  .foil-frame { padding: 3px; background-image: linear-gradient(135deg, var(--g3) 0%, var(--g1) 28%, var(--g2) 50%, var(--g1) 72%, var(--g3) 100%); }
+  .ornament { display: flex; align-items: center; gap: 0.875rem; color: var(--brand); }
+  .ornament::before, .ornament::after { content: ""; flex: 1 1 0; max-width: 140px; height: 1px; background: var(--line-strong); }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { scrollbar-width: none; }
+}
