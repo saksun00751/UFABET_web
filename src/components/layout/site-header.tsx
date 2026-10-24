@@ -9,16 +9,21 @@ import { ThemeDialog } from "./theme-switcher";
 import { BalancePill } from "./balance-pill";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/providers/auth";
+import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
+/** เรียงตามความสำคัญ: ธุรกรรมหลัก → โปรโมชั่น/กิจกรรม → ประวัติ → ช่วยเหลือ → บัญชี */
 const NAV = [
   { href: "/", label: "หน้าแรก" },
-  { href: "/promotions", label: "โปรโมชั่น" },
-  { href: "/rewards", label: "วงล้อ & รางวัล" },
   { href: "/deposit", label: "ฝากเงิน", auth: true },
   { href: "/withdraw", label: "ถอนเงิน", auth: true },
-  { href: "/history", label: "ประวัติ", auth: true },
+  { href: "/promotions", label: "โปรโมชั่น" },
+  { href: "/wheel", label: "วงล้อ", auth: true },
+  { href: "/coupons", label: "คูปอง", auth: true },
+  { href: "/rewards", label: "ของรางวัล", auth: true },
   { href: "/referral", label: "แนะนำเพื่อน", auth: true },
+  { href: "/history", label: "ประวัติ", auth: true },
+  { href: "/contact", label: "ติดต่อ" },
   { href: "/profile", label: "บัญชี", auth: true },
   { href: "/login", label: "เข้าสู่ระบบ", guest: true },
 ];
@@ -57,7 +62,7 @@ export function SiteHeader() {
         </div>
       </div>
       <div className="border-b border-border bg-card/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center gap-x-[clamp(0.5rem,2vw,1.5rem)] gap-y-2 px-[clamp(1rem,3vw,1.5rem)] py-[clamp(0.5rem,1.5vw,0.75rem)]">
+        <div className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] items-center gap-x-[clamp(0.5rem,2vw,1.5rem)] gap-y-2 px-[clamp(1rem,3vw,1.5rem)] py-[clamp(0.5rem,1.5vw,0.75rem)]">
           <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
             <DialogPrimitive.Trigger
               aria-label="เปิดเมนู"
@@ -107,11 +112,11 @@ export function SiteHeader() {
             <ThemeDialog />
             {loading ? null : authenticated ? (
               <BalancePill />
-            ) : (
+            ) : site.registration ? (
               <Button asChild size="sm">
                 <Link href="/register">สมัครสมาชิก</Link>
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
