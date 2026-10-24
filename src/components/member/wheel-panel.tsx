@@ -143,6 +143,7 @@ export function WheelPanel() {
     wh.animation.callbackFinished = undefined;
     wh.draw();
     try {
+      const diamondBefore = diamond;
       const raw = await wheelApi.spin();
       console.log("[wheel] spin response", raw);
       const r = normalizeSpin(raw);
@@ -165,7 +166,12 @@ export function WheelPanel() {
         list.mutate();
         history.mutate();
         gm("bonus/wallet");
-        profile.mutate();
+        profile.mutate().then((p) => {
+          const after = pick(p, ["profile.rewards.diamonds", "rewards.diamonds", "diamond"]);
+          if (diamondBefore === undefined || after === undefined) return;
+          const d = toNumber(after) - diamondBefore;
+          if (d !== 0) toast(d > 0 ? `ได้รับ Diamond +${d.toLocaleString("th-TH")}` : `ใช้ Diamond ${Math.abs(d).toLocaleString("th-TH")}`, { description: `Diamond คงเหลือ ${toNumber(after).toLocaleString("th-TH")}` });
+        });
       };
       wh.animation.callbackFinished = done;
       wh.startAnimation();

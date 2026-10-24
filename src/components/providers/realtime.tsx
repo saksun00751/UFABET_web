@@ -5,8 +5,10 @@
  */
 import * as React from "react";
 import { useSWRConfig } from "swr";
+import { toast } from "sonner";
 import { realtime } from "@/lib/api/member";
 import { pick, pickStr } from "@/lib/api/shape";
+import { baht, toNumber } from "@/lib/format";
 import { useAuth } from "./auth";
 
 const RETRY_AFTER_MS = 60_000;
@@ -25,6 +27,15 @@ const warn = (...args: unknown[]) => {
 };
 
 /** รับ boolean ที่อาจมาเป็น string ("false"/"0") */
+const BALANCE_KEYS = ["balance", "credit", "game_balance", "amount", "total", "wallet.balance"];
+const readBalance = (d: unknown) => toNumber(pick(d, BALANCE_KEYS, 0));
+
+const DIAMOND_KEYS = ["profile.rewards.diamonds", "rewards.diamonds", "diamond"];
+const readDiamond = (d: unknown) => {
+  const v = pick(d, DIAMOND_KEYS);
+  return v === undefined ? undefined : toNumber(v);
+};
+
 function toBool(v: unknown, fallback: boolean): boolean {
   if (typeof v === "string") return !["", "0", "false", "off", "no"].includes(v.trim().toLowerCase());
   if (v === undefined || v === null) return fallback;
@@ -33,7 +44,7 @@ function toBool(v: unknown, fallback: boolean): boolean {
 
 export function RealtimeBridge() {
   const { authenticated } = useAuth();
-  const { mutate } = useSWRConfig();
+  const { mutate, cache } = useSWRConfig();
 
   React.useEffect(() => {
     if (!authenticated) return;
@@ -99,9 +110,23 @@ export function RealtimeBridge() {
           giveUp();
         });
         const eventName = pickStr(cfg, ["event", "balance_event"], "member.balance.refresh");
-        const onRefresh = () => {
-          mutate("member/balance");
+        const onRefresh = async () => {
+          const prev = cache.get("member/balance")?.data;
+          const prevDiamond = readDiamond(cache.get("member/profile")?.data);
           mutate("bonus/wallet");
+          mutate("member/profile").then((p) => {
+            const now = readDiamond(p);
+            if (disposed || prevDiamond === undefined || now === undefined || now === prevDiamond) return;
+            const d = now - prevDiamond;
+            toast(d > 0 ? `ได้รับ Diamond +${d.toLocaleString("th-TH")}` : `Diamond ลดลง ${Math.abs(d).toLocaleString("th-TH")}`, {
+              description: `Diamond คงเหลือ ${now.toLocaleString("th-TH")}`,
+            });
+          });
+          const next = await mutate("member/balance");
+          if (disposed || prev === undefined || next === undefined) return;
+          const diff = readBalance(next) - readBalance(prev);
+          if (diff > 0) toast.success(`ยอดเงินเข้า +${baht(diff)}`, { description: `ยอดคงเหลือ ${baht(readBalance(next))}` });
+          else if (diff < 0) toast.info(`ยอดเงินลดลง −${baht(-diff)}`, { description: `ยอดคงเหลือ ${baht(readBalance(next))}` });
         };
         channel.bind(eventName, onRefresh);
         channel.bind(`.${eventName}`, onRefresh); // Laravel Echo style
@@ -122,7 +147,7 @@ export function RealtimeBridge() {
       disposed = true;
       cleanup?.();
     };
-  }, [authenticated, mutate]);
+  }, [authenticated, mutate, cache]);
 
   return null;
 }
