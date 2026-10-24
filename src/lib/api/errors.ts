@@ -22,12 +22,15 @@ const TH: Record<string, string> = {
   BONUS_TRANSFER_REQUIRES_REVIEW: "รายการกำลังตรวจสอบ ห้ามทำซ้ำ กรุณาติดต่อเจ้าหน้าที่",
   BONUS_MODE_UNSUPPORTED: "ระบบยังไม่เปิดโยกโบนัส",
   UFA_GAME_NOT_READY: "บัญชีเกมยังไม่พร้อม กรุณาติดต่อเจ้าหน้าที่",
+  PROVIDER_BALANCE_NOT_VERIFIED: "ยังตรวจสอบยอดเครดิตในเกมไม่ได้ กรุณาออกจากเกมแล้วรอสักครู่ก่อนลองถอนใหม่ หากยังไม่ได้ติดต่อเจ้าหน้าที่",
+  BELOW_MINIMUM: "ยอดถอนต่ำกว่าขั้นต่ำที่กำหนด",
+  INSUFFICIENT_BALANCE: "ยอดเงินไม่เพียงพอ",
   NETWORK_ERROR: "เชื่อมต่อไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ต",
 };
 
 export function errorMessage(err: unknown, fallback = "เกิดข้อผิดพลาด กรุณาลองใหม่") {
   if (err instanceof ApiError) {
-    if (TH[err.code]) return TH[err.code];
+    if (TH[err.code.toUpperCase()]) return TH[err.code.toUpperCase()];
     const first = Object.values(err.fields ?? {})[0]?.[0];
     if (first) return first;
     if (err.status === 422) return "ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
@@ -35,6 +38,15 @@ export function errorMessage(err: unknown, fallback = "เกิดข้อผ�
     return err.message || fallback;
   }
   return fallback;
+}
+
+/** แปลเหตุผลที่ backend ส่งมาเป็นรหัส (เช่น reasons[] ใน withdraw/eligibility) เป็นข้อความไทย */
+export function reasonText(code: string): string {
+  const key = code.trim().toUpperCase();
+  if (TH[key]) return TH[key];
+  // รหัสที่ยังไม่รู้จัก (SNAKE_CASE ล้วน) ไม่แสดงให้ผู้ใช้เห็นตรงๆ
+  if (/^[A-Z0-9]+(_[A-Z0-9]+)+$/.test(key)) return "ยังไม่สามารถถอนได้ในขณะนี้ กรุณาลองใหม่หรือติดต่อเจ้าหน้าที่";
+  return code;
 }
 
 export function fieldError(err: unknown, field: string): string | undefined {

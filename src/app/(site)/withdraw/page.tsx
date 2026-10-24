@@ -5,10 +5,12 @@ import { AlertTriangle, CheckCircle2, Loader2, ShieldAlert } from "lucide-react"
 import { toast } from "sonner";
 import { withdraw } from "@/lib/api/member";
 import { pick, pickStr } from "@/lib/api/shape";
-import { errorMessage } from "@/lib/api/errors";
+import { ApiError } from "@/lib/api/client";
+import { errorMessage, reasonText } from "@/lib/api/errors";
+import { useAuth } from "@/components/providers/auth";
 import { useBalance, useProfile } from "@/hooks/use-member";
 import { useIdempotentKey } from "@/hooks/use-idempotent";
-import { baht, toNumber } from "@/lib/format";
+import { baht, maskPhone, toNumber } from "@/lib/format";
 import * as v from "@/lib/validate";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { PageHeader } from "@/components/layout/page-header";
@@ -29,17 +31,40 @@ export default function WithdrawPage() {
   );
 }
 
+const NOT_VERIFIED = "PROVIDER_BALANCE_NOT_VERIFIED";
+const NOT_VERIFIED_RETRY_MS = 5_000;
+const NOT_VERIFIED_MAX_RETRIES = 12;
+
 function Withdraw() {
   const { mutate: gm } = useSWRConfig();
   const { balance } = useBalance();
   const profile = useProfile();
+  const { member } = useAuth();
   const elig = useSWR("withdraw/eligibility", withdraw.eligibility);
   const idem = useIdempotentKey("wd");
 
   const e = elig.data;
-  const eligible = Boolean(pick(e, ["can_submit_withdrawal", "eligible", "can_withdraw", "allowed"], true));
-  const reasons = (pick<unknown[]>(e, ["reasons"]) ?? []).map(String);
-  const reason = reasons.join(" · ") || pickStr(e, ["reason", "message", "reason_th", "blocked_reason"]);
+  const eligible = !elig.error && Boolean(pick(e, ["can_submit_withdrawal", "eligible", "can_withdraw", "allowed"], true));
+  const reasons = (pick<unknown[]>(e, ["reasons"]) ?? []).map((r) => reasonText(String(r)));
+  const reason = (elig.error ? errorMessage(elig.error) : "") || reasons.join(" · ") || reasonText(pickStr(e, ["reason", "message", "reason_th", "blocked_reason"]));
+  // backend ยังยืนยันยอดฝั่ง provider ไม่ได้ → ลองเรียก eligibility ใหม่เอง (สูงสุด NOT_VERIFIED_MAX_RETRIES ครั้ง)
+  const notVerified =
+    (elig.error instanceof ApiError && elig.error.code === NOT_VERIFIED) ||
+    [...(pick<unknown[]>(e, ["reasons"]) ?? []).map(String), pickStr(e, ["reason", "blocked_reason", "code"])].includes(NOT_VERIFIED);
+  const retries = React.useRef(0);
+  const { mutate: revalidateElig } = elig;
+  React.useEffect(() => {
+    if (!notVerified) {
+      retries.current = 0;
+      return;
+    }
+    const t = setInterval(() => {
+      if (retries.current >= NOT_VERIFIED_MAX_RETRIES) return clearInterval(t);
+      retries.current += 1;
+      revalidateElig();
+    }, NOT_VERIFIED_RETRY_MS);
+    return () => clearInterval(t);
+  }, [notVerified, revalidateElig]);
   const min = toNumber(pick(e, ["min", "min_withdraw", "minimum", "limits.min"], 0));
   const max = toNumber(pick(e, ["max", "max_withdraw", "maximum", "limits.max", "daily_remaining"], 0));
   const available = toNumber(pick(e, ["available", "withdrawable", "amount_available", "balance"], balance));
@@ -48,14 +73,22 @@ function Withdraw() {
   const timesLeft = pick<number>(e, ["remaining_count", "times_left", "remaining_today"]);
 
   const bankSrc = pick(e, ["bank", "account"]) ?? profile.data;
-  const bankShort = pickStr(bankSrc, ["bank_shortcode", "shortcode", "bank.shortcode", "bank_code"]);
-  const accNo = pickStr(bankSrc, ["account_masked", "acc_no_masked", "acc_no", "account_no"]);
-  const accName = pickStr(bankSrc, ["account_name", "acc_name", "name"]) ||
+  const bankShort = pickStr(bankSrc, ["bank_shortcode", "shortcode", "bank.shortcode", "profile.bank.shortcode", "bank_code"]);
+  const bankName = pickStr(bankSrc, ["bank_name", "name_th", "bank.name_th", "profile.bank.name_th"]);
+  const accNo = pickStr(bankSrc, ["account_masked", "acc_no_masked", "bank.account_masked", "profile.bank.account_masked", "acc_no", "account_no"]);
+  const accName = pickStr(bankSrc, ["account_name", "acc_name", "profile.name", "name"]) ||
     [pickStr(profile.data, ["firstname"]), pickStr(profile.data, ["lastname"])].filter(Boolean).join(" ");
+  const memberCode = pickStr(profile.data, ["profile.code"], member?.code ? String(member.code) : "");
+  const memberPhone = maskPhone(member?.user_name);
+  const details = [
+    { label: "รหัสสมาชิก", value: memberCode },
+    { label: "เบอร์โทร", value: memberPhone },
+    { label: "ธนาคาร", value: bankName || bankShort },
+  ].filter((d) => d.value);
 
   const [amount, setAmount] = React.useState("");
   const amt = toNumber(amount);
-  const [quote, setQuote] = React.useState<{ fee: number; net: number; note?: string } | null>(null);
+  const [quote, setQuote] = React.useState<{ fee: number; net: number; note?: string; tone?: "warning" | "error" } | null>(null);
   const [quoting, setQuoting] = React.useState(false);
   const [confirm, setConfirm] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
@@ -71,10 +104,10 @@ function Withdraw() {
         setQuote({
           fee: toNumber(pick(q, ["fee", "charge", "fee_amount"], 0)),
           net: toNumber(pick(q, ["net", "net_amount", "receive", "amount_receive", "amount"], amt)),
-          note: (pick(q, ["can_submit_withdrawal"], true) ? undefined : (pick<unknown[]>(q, ["reasons"]) ?? []).map(String).join(" · ")) || pickStr(q, ["message", "note"]) || undefined,
+          note: (pick(q, ["can_submit_withdrawal"], true) ? undefined : (pick<unknown[]>(q, ["reasons"]) ?? []).map((r) => reasonText(String(r))).join(" · ")) || reasonText(pickStr(q, ["message", "note"])) || undefined,
         });
       } catch (err) {
-        setQuote({ fee: 0, net: amt, note: errorMessage(err) });
+        setQuote({ fee: 0, net: amt, note: errorMessage(err), tone: "error" });
       } finally {
         setQuoting(false);
       }
@@ -127,7 +160,7 @@ function Withdraw() {
               </>
             )}
             {!eligible && (
-              <div className="flex gap-2 rounded-2xl bg-warning/10 p-3 text-sm text-warning">
+              <div role="alert" className="flex gap-2 rounded-2xl border-2 border-warning bg-warning/15 p-3 text-sm font-semibold text-warning">
                 <AlertTriangle className="size-5 shrink-0" /> {reason || "ยังไม่สามารถถอนได้ในขณะนี้"}
               </div>
             )}
@@ -160,11 +193,23 @@ function Withdraw() {
           <div className="flex items-center gap-3 rounded-2xl bg-secondary p-3.5">
             <BankChip shortcode={bankShort} />
             <div className="min-w-0 flex-1">
-              <div className="truncate font-semibold">{accName || "บัญชีที่ลงทะเบียน"}</div>
-              <div className="text-sm tracking-wider text-muted-foreground">{accNo || "—"}</div>
+              <div className="text-xs text-muted-foreground">{bankName || "บัญชีที่ลงทะเบียน"}</div>
+              <div className="truncate font-semibold">{accName || "—"}</div>
+              <div className="font-deco text-sm tracking-wider text-muted-foreground">{accNo || "—"}</div>
             </div>
             <CheckCircle2 className="size-5 text-brand" />
           </div>
+          {details.length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-2xl border border-border p-3.5 text-sm">
+              {details.map((d) => (
+                <div key={d.label} className="min-w-0">
+                  <dt className="text-xs text-muted-foreground">{d.label}</dt>
+                  <dd className="truncate font-medium">{d.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <p className="text-xs text-muted-foreground">ถอนได้เฉพาะเข้าบัญชีที่ลงทะเบียนไว้เท่านั้น หากข้อมูลไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่</p>
           <div className="mt-1 flex justify-between text-sm">
             <span className="text-muted-foreground">ค่าธรรมเนียม</span>
             <span>{quoting ? "…" : baht(quote?.fee ?? 0)}</span>
@@ -173,12 +218,19 @@ function Withdraw() {
             <span>ยอดที่จะได้รับ</span>
             <span className="font-display text-brand">{quoting ? "…" : baht(quote?.net ?? amt)}</span>
           </div>
-          {quote?.note && <p className="text-sm text-muted-foreground">{quote.note}</p>}
+          {quote?.note && (
+            <div
+              role="alert"
+              className={`flex gap-2 rounded-2xl border-2 p-3 text-sm font-semibold ${quote.tone === "error" ? "border-destructive bg-destructive/15 text-destructive" : "border-warning bg-warning/15 text-warning"}`}
+            >
+              <AlertTriangle className="size-5 shrink-0" /> {quote.note}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {idem.uncertain && (
-        <div className="flex gap-2 rounded-2xl border border-warning bg-warning/10 p-4 text-sm text-warning">
+        <div role="alert" className="flex gap-2 rounded-2xl border-2 border-warning bg-warning/15 p-4 text-sm font-semibold text-warning">
           <ShieldAlert className="size-5 shrink-0" />
           ยังไม่ทราบผลการถอนล่าสุด เงินอาจถูกหักแล้ว — กรุณาตรวจสอบที่หน้าประวัติก่อน หากกดยืนยันอีกครั้งระบบจะใช้รายการเดิม (ไม่ถอนซ้ำ)
         </div>
@@ -205,8 +257,9 @@ function Withdraw() {
             <div className="text-sm text-muted-foreground">ยอดที่จะได้รับ</div>
             <div className="font-display text-4xl font-bold text-brand">{baht(quote?.net ?? amt)}</div>
             <div className="mt-1 text-sm text-muted-foreground">
-              เข้าบัญชี {bankShort} {accNo}
+              เข้าบัญชี {bankName || bankShort} {accNo}
             </div>
+            {accName && <div className="text-sm font-medium">{accName}</div>}
           </div>
           <Button size="lg" onClick={submit} disabled={busy}>
             {busy && <Loader2 className="animate-spin" />} ยืนยันถอน {baht(amt)}

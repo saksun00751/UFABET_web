@@ -10,6 +10,15 @@ import { pick, pickStr } from "@/lib/api/shape";
 import { useAuth } from "./auth";
 
 const RETRY_AFTER_MS = 60_000;
+const API_PREFIX = "/api/member/v1";
+const DEFAULT_AUTH_PATH = `${API_PREFIX}/realtime/auth`;
+
+/** auth endpoint จาก config — เติม prefix /api/member/v1 ให้ถ้ามาเป็น path สั้น เช่น /realtime/auth */
+function resolveAuthEndpoint(raw: string): string {
+  if (!raw) return DEFAULT_AUTH_PATH;
+  if (/^https?:\/\//i.test(raw) || raw.startsWith(API_PREFIX)) return raw;
+  return `${API_PREFIX}/${raw.replace(/^\/+/, "")}`;
+}
 
 const warn = (...args: unknown[]) => {
   if (process.env.NODE_ENV !== "production") console.warn("[realtime]", ...args);
@@ -52,7 +61,7 @@ export function RealtimeBridge() {
           forceTLS,
           channelAuthorization: {
             transport: "ajax",
-            endpoint: "/api/member/v1/realtime/auth",
+            endpoint: resolveAuthEndpoint(pickStr(cfg, ["auth_endpoint", "authEndpoint", "auth_url", "auth.endpoint"])),
             customHandler: async ({ socketId, channelName: ch }, callback) => {
               try {
                 const res = await realtime.auth(socketId, ch);
