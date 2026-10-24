@@ -5,6 +5,7 @@ import { SWRConfig } from "swr";
 import { ThemePresetProvider } from "./theme-preset";
 import { AuthProvider } from "./auth";
 import { RealtimeBridge } from "./realtime";
+import { DiamondWatcher } from "./diamond-watcher";
 import { site } from "@/lib/site";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SWRConfig value={{ revalidateOnFocus: true, dedupingInterval: 3000, errorRetryCount: 2 }}>
           <AuthProvider>
             <RealtimeBridge />
+            <DiamondWatcher />
             {children}
             <Toaster />
           </AuthProvider>

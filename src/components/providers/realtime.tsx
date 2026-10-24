@@ -30,12 +30,6 @@ const warn = (...args: unknown[]) => {
 const BALANCE_KEYS = ["balance", "credit", "game_balance", "amount", "total", "wallet.balance"];
 const readBalance = (d: unknown) => toNumber(pick(d, BALANCE_KEYS, 0));
 
-const DIAMOND_KEYS = ["profile.rewards.diamonds", "rewards.diamonds", "diamond"];
-const readDiamond = (d: unknown) => {
-  const v = pick(d, DIAMOND_KEYS);
-  return v === undefined ? undefined : toNumber(v);
-};
-
 function toBool(v: unknown, fallback: boolean): boolean {
   if (typeof v === "string") return !["", "0", "false", "off", "no"].includes(v.trim().toLowerCase());
   if (v === undefined || v === null) return fallback;
@@ -112,16 +106,8 @@ export function RealtimeBridge() {
         const eventName = pickStr(cfg, ["event", "balance_event"], "member.balance.refresh");
         const onRefresh = async () => {
           const prev = cache.get("member/balance")?.data;
-          const prevDiamond = readDiamond(cache.get("member/profile")?.data);
           mutate("bonus/wallet");
-          mutate("member/profile").then((p) => {
-            const now = readDiamond(p);
-            if (disposed || prevDiamond === undefined || now === undefined || now === prevDiamond) return;
-            const d = now - prevDiamond;
-            toast(d > 0 ? `ได้รับ Diamond +${d.toLocaleString("th-TH")}` : `Diamond ลดลง ${Math.abs(d).toLocaleString("th-TH")}`, {
-              description: `Diamond คงเหลือ ${now.toLocaleString("th-TH")}`,
-            });
-          });
+          mutate("member/profile"); // Diamond เปลี่ยน → DiamondWatcher แจ้ง toast
           const next = await mutate("member/balance");
           if (disposed || prev === undefined || next === undefined) return;
           const diff = readBalance(next) - readBalance(prev);
