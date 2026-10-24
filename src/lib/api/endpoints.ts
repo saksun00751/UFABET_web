@@ -107,9 +107,11 @@ export const ops = {
   "deposit.channels": () => get("/deposit/channels"),
   /** ✅ method: bank | tw | payment | slip */
   "deposit.select": (method: string, bank_code?: number) => post("/deposit/select", { method, ...(bank_code ? { bank_code } : {}) }),
+  /** ✅ method=payment → bank เป็น map ของ provider (id, name, min_deposit, deposit_range, remark) */
+  "deposit.loadbank": (method: string) => post("/deposit/loadbank", { method }),
   /** ✅ รองรับ bank | tw | slip (payment ใช้ select) */
   "deposit.selectRandom": (method: string, bank_code?: number) => post("/deposit/select/random", { method, ...(bank_code ? { bank_code } : {}) }),
-  /** ✅ สร้างรายการชำระเงิน (provider adminpay) → checkout_url */
+  /** ✅ สร้างรายการชำระเงิน → payment_page_url ?? checkout_url (provider จาก deposit.loadbank) */
   "deposit.createPayment": (amount: number, idempotencyKey: string, provider = "adminpay") =>
     post("/deposit/payment/create", { provider, amount: String(amount) }, idempotencyKey),
   "deposit.paymentStatus": (txid?: string) => get("/deposit/payment/status", { txid }),

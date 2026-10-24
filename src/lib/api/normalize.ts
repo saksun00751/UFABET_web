@@ -44,17 +44,21 @@ const METHODS: Record<string, Omit<DepositMethod, "id">> = {
   payment: { name: "ชำระออนไลน์ / QR", desc: "สร้างรายการฝากอัตโนมัติ", mode: "qr" },
 };
 
+/** deposit/channels → data.deposit = { bank, tw, payment, slip: จำนวนช่องทางที่ใช้ได้, sort: { [method]: ลำดับ | null } } */
 export function normalizeMethods(data: unknown): DepositMethod[] {
-  return asList<Dict>(data, ["methods"])
-    .filter((m) => METHODS[pickStr(m, ["id"])] && Boolean(pick(m, ["available"], true)))
-    .sort((a, b) => Number(pick(a, ["sort"], 99)) - Number(pick(b, ["sort"], 99)))
-    .map((m) => ({ id: pickStr(m, ["id"]) as DepositMethod["id"], ...METHODS[pickStr(m, ["id"])] }));
+  const dep = pick(data, ["deposit"]);
+  if (!isDict(dep)) return [];
+  const sort = isDict(dep.sort) ? dep.sort : {};
+  return Object.keys(METHODS)
+    .filter((id) => Number(dep[id]) > 0)
+    .sort((a, b) => Number(sort[a] ?? 99) - Number(sort[b] ?? 99))
+    .map((id) => ({ id: id as DepositMethod["id"], ...METHODS[id] }));
 }
 
 export type DepositAccount = { code: string; bankName: string; bankShort: string; accNo: string; accName: string; qr?: string; minDeposit?: string; remark?: string };
 
 export function normalizeDepositAccounts(data: unknown): { accounts: DepositAccount[]; assignedCode?: string } {
-  const accounts = asList<Dict>(data, ["accounts"])
+  const accounts = asList<Dict>(data, ["bank", "accounts"])
     .map((a) => ({
       code: pickStr(a, ["code", "id"]),
       bankName: pickStr(a, ["bank_name", "name_th"]),
@@ -67,6 +71,25 @@ export function normalizeDepositAccounts(data: unknown): { accounts: DepositAcco
     }))
     .filter((a) => a.accNo);
   return { accounts, assignedCode: pickStr(data, ["account.code"]) || undefined };
+}
+
+export type PaymentProvider = { id: string; name: string; minDeposit: number; remark?: string };
+
+/** deposit/loadbank method=payment → bank เป็น map ที่ key ด้วย provider id */
+export function normalizeProviders(data: unknown): PaymentProvider[] {
+  const bank = pick(data, ["bank"]);
+  if (!isDict(bank)) return [];
+  return Object.entries(bank).flatMap(([key, p]) => {
+    if (!isDict(p)) return [];
+    return [
+      {
+        id: pickStr(p, ["id"], key),
+        name: pickStr(p, ["name"], key),
+        minDeposit: Number(pick(p, ["min_deposit"], 0)) || 0,
+        remark: pickStr(p, ["remark"]) || undefined,
+      },
+    ];
+  });
 }
 
 export type Payment = {
@@ -82,11 +105,11 @@ export type Payment = {
 export function normalizePayment(data: unknown): Payment {
   return {
     ref: pickStr(data, ["transaction_id", "ref", "reference", "txn_id", "id", "order_id", "payment.ref"]),
-    amount: pickStr(data, ["amount", "payment.amount"]),
+    amount: pickStr(data, ["pay_amount", "amount", "payment.amount"]),
     status: pickStr(data, ["status", "state", "payment.status"], "PENDING").toUpperCase(),
     qrImage: pickStr(data, ["qr_image", "qr_image_url", "qrcode_url", "qr_url", "payment.qr_image"]) || undefined,
-    qrText: pickStr(data, ["qr_text", "qrcode", "qr_code", "promptpay_payload", "payment.qr_text"]) || undefined,
-    payUrl: pickStr(data, ["checkout_url", "pay_url", "payment_url", "url", "redirect_url"]) || undefined,
+    qrText: pickStr(data, ["qr_text", "qrcode", "qr_code", "qr_payload", "promptpay_payload", "payment.qr_text"]) || undefined,
+    payUrl: pickStr(data, ["payment_page_url", "checkout_url", "pay_url", "payment_url", "url", "redirect_url"]) || undefined,
     expiresAt: pickStr(data, ["expired_at", "expires_at", "expire_at"]) || undefined,
   };
 }

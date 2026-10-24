@@ -9,6 +9,7 @@ import {
   normalizeDepositAccounts,
   normalizeMethods,
   normalizePayment,
+  normalizeProviders,
   normalizePromotions,
   paymentState,
   type DepositAccount,
@@ -115,7 +116,7 @@ function BankTransfer({ method }: { method: DepositMethod["id"] }) {
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
 
-  // select = ดึงบัญชีทั้งหมดของวิธีนี้ + บัญชีที่ระบบกำหนดให้ · random = ให้ระบบสุ่ม แล้วหาบัญชีนั้นจากรายการเดิม
+  // เลือกช่องทางจาก deposit/channels แล้วโหลดบัญชีด้วย deposit/loadbank (ส่ง method) · random = ให้ระบบสุ่ม แล้วหาบัญชีนั้นจากรายการเดิม
   const load = React.useCallback(
     async (random = false) => {
       setLoading(true);
@@ -127,9 +128,7 @@ function BankTransfer({ method }: { method: DepositMethod["id"] }) {
           const r = normalizeDepositAccounts(await deposit.selectRandom(method));
           code = r.assignedCode;
         } else {
-          const d = normalizeDepositAccounts(await deposit.select(method));
-          list = d.accounts;
-          code = d.assignedCode;
+          list = normalizeDepositAccounts(await deposit.loadbank(method)).accounts;
           accounts.current = list;
         }
         const next = list.find((a) => a.code === code) ?? list[0];
@@ -194,21 +193,32 @@ function BankTransfer({ method }: { method: DepositMethod["id"] }) {
 }
 
 function QrPayment({ onPaid }: { onPaid: () => void }) {
+  const providersSWR = useSWR("deposit/loadbank/payment", () => deposit.loadbank("payment"));
+  const providers = normalizeProviders(providersSWR.data);
+  const [providerId, setProviderId] = React.useState<string | null>(null);
+  const provider = providers.find((p) => p.id === providerId) ?? providers[0] ?? null;
   const [amount, setAmount] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [payment, setPayment] = React.useState<Payment | null>(null);
   const [touched, setTouched] = React.useState(false);
   const state = payment ? paymentState(payment.status) : null;
-  const amountError = v.amount(amount, toNumber(amount));
+  const min = provider?.minDeposit ?? 0;
+  const amountError = v.amount(amount, toNumber(amount)) ?? (min > 0 && toNumber(amount) < min ? `ฝากขั้นต่ำ ${baht(min)}` : undefined);
 
   async function create() {
     setTouched(true);
-    if (amountError) return;
+    if (amountError || !provider) return;
+    // เปิดหน้าต่างทันทีตอนคลิก (ก่อน await) เพื่อไม่ให้เบราว์เซอร์บล็อก popup แล้วค่อยพาไป URL เมื่อได้ผลลัพธ์
+    const win = window.open("", "_blank");
+    if (win) win.opener = null;
     setBusy(true);
     try {
-      const d = await deposit.createPayment(toNumber(amount));
-      setPayment(normalizePayment(d));
+      const p = normalizePayment(await deposit.createPayment(toNumber(amount), provider.id));
+      setPayment(p);
+      if (p.payUrl && win) win.location.href = p.payUrl;
+      else win?.close();
     } catch (e) {
+      win?.close();
       toast.error(errorMessage(e));
     } finally {
       setBusy(false);
@@ -235,13 +245,42 @@ function QrPayment({ onPaid }: { onPaid: () => void }) {
     return (
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <label htmlFor="dep-amount" className="font-display text-lg font-semibold">
-            จำนวนเงินที่ต้องการฝาก
-          </label>
-          <AmountInput id="dep-amount" value={amount} onChange={setAmount} onBlur={() => setTouched(true)} error={touched ? amountError : undefined} />
-          <Button size="lg" disabled={busy} onClick={create}>
-            {busy && <Loader2 className="animate-spin" />} สร้างรายการฝาก {toNumber(amount) > 0 ? baht(amount) : ""}
-          </Button>
+          {providersSWR.isLoading ? (
+            <Skeleton className="h-24" />
+          ) : providers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{providersSWR.error ? errorMessage(providersSWR.error) : "ยังไม่เปิดช่องทางชำระออนไลน์ในขณะนี้"}</p>
+          ) : (
+            <>
+              {providers.length > 1 && (
+                <div className="flex flex-col gap-2" role="radiogroup" aria-label="ผู้ให้บริการ">
+                  {providers.map((p) => {
+                    const on = p.id === provider?.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setProviderId(p.id)}
+                        className={cn("flex items-center justify-between gap-3 rounded-2xl border-2 p-3 text-left transition-colors", on ? "bg-soft border-primary" : "border-border bg-card hover:border-edge")}
+                      >
+                        <span className="font-semibold">{p.name}</span>
+                        {p.minDeposit > 0 && <span className="text-xs text-muted-foreground">ขั้นต่ำ {baht(p.minDeposit)}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {provider?.remark && <p className="text-sm text-muted-foreground">{provider.remark}</p>}
+              <label htmlFor="dep-amount" className="font-display text-lg font-semibold">
+                จำนวนเงินที่ต้องการฝาก
+              </label>
+              <AmountInput id="dep-amount" value={amount} onChange={setAmount} onBlur={() => setTouched(true)} error={touched ? amountError : undefined} />
+              <Button size="lg" disabled={busy} onClick={create}>
+                {busy && <Loader2 className="animate-spin" />} สร้างรายการฝาก {toNumber(amount) > 0 ? baht(amount) : ""}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     );
@@ -250,22 +289,19 @@ function QrPayment({ onPaid }: { onPaid: () => void }) {
     <Card className="bg-hero border-edge">
       <CardContent className="flex flex-col items-center gap-4 text-center">
         <div className="flex w-full items-center justify-between">
-          <h2 className="text-lg font-semibold">สแกนเพื่อชำระเงิน</h2>
+          <h2 className="text-lg font-semibold">ชำระเงิน</h2>
           <StatusBadge state={state!} />
         </div>
         <div className="text-foil font-deco text-4xl font-black">{baht(payment.amount || amount)}</div>
         {state === "pending" && (
           <>
-            {payment.qrImage || payment.qrText ? (
-              <QrImage src={payment.qrImage} text={payment.qrText} />
-            ) : payment.payUrl ? (
+            {payment.payUrl && (
               <Button asChild size="lg">
-                <a href={payment.payUrl} target="_blank" rel="noreferrer">
-                  ไปหน้าชำระเงิน
+                <a href={payment.payUrl} target="_blank" rel="noopener noreferrer">
+                  เปิดหน้าชำระเงิน
                 </a>
               </Button>
-            ) : null}
-            {payment.expiresAt && <p className="text-sm text-muted-foreground">ชำระภายใน {new Date(payment.expiresAt).toLocaleTimeString("th-TH")}</p>}
+            )}
             <Button variant="secondary" size="sm" onClick={() => poll.mutate()}>
               <RefreshCw className={cn("size-4", poll.isValidating && "animate-spin")} /> ตรวจสอบสถานะ
             </Button>

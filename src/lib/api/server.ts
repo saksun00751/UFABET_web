@@ -132,7 +132,14 @@ export async function call<T>(path: string, opts: Opts, state: Backend, retryCsr
     return call<T>(path, opts, state, false);
   }
   if (!res.ok || json?.success === false) throw toError(res.status, json);
-  return (data ?? {}) as T;
+  return (data ?? bareBody(json)) as T;
+}
+
+/** บาง endpoint (เช่น deposit/loadbank) ส่งฟิลด์ที่ระดับบนสุดโดยไม่มี data ครอบ */
+function bareBody(json: object | null): object {
+  if (!json) return {};
+  const { success: _s, message: _m, error: _e, ...rest } = json as Record<string, unknown>;
+  return rest;
 }
 
 export async function refreshCsrf(state: Backend) {

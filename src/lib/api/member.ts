@@ -74,6 +74,7 @@ export const promotion = {
 
 export const deposit = {
   channels: () => run("deposit.channels"),
+  loadbank: (method: string) => run("deposit.loadbank", method),
   select: (method: string, bank_code?: number) => run("deposit.select", method, bank_code),
   selectRandom: (method: string, bank_code?: number) => run("deposit.selectRandom", method, bank_code),
   createPayment: (amount: number, provider?: string) => run("deposit.createPayment", amount, newIdempotencyKey("dep"), provider),
