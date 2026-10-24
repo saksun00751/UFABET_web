@@ -49,6 +49,8 @@ export const member = {
   balance: () => run("member.balance"),
   /** ดึงยอดล่าสุดจากผู้ให้บริการเกม (หนักกว่า /balance) */
   loadBalance: () => run("member.loadBalance"),
+  changePassword: (current_password: string, password: string, password_confirmation: string) =>
+    run("member.changePassword", current_password, password, password_confirmation),
 };
 
 export const game = {

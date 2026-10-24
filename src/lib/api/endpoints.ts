@@ -85,6 +85,10 @@ export const ops = {
   /** ดึงยอดล่าสุดจากผู้ให้บริการเกม (หนักกว่า /balance) */
   "member.loadBalance": () => get("/member/loadbalance"),
 
+  /** ⚠️ เดา path/payload (Laravel รูปแบบ password_confirmation) — ต้องยืนยันกับ backend */
+  "member.changePassword": (current_password: string, password: string, password_confirmation: string) =>
+    post("/member/password", { current_password: String(current_password), password: String(password), password_confirmation: String(password_confirmation) }),
+
   /* ───── Game ───── */
   /** ⚠️ คาดว่าได้ url สำหรับเปิดเกม */
   "game.login": (body: Dict = {}) => post("/game/login", body),

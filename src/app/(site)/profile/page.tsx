@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, History, LogOut, Sparkles, Ticket, Gift, UsersRound } from "lucide-react";
+import { ChevronRight, History, KeyRound, LogOut, Sparkles, Ticket, Gift, UsersRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth";
@@ -53,6 +53,7 @@ function Profile() {
     { href: "/coupons", label: "คูปอง", icon: Ticket },
     { href: "/rewards", label: "ของรางวัล", icon: Gift },
     { href: "/referral", label: "แนะนำเพื่อน", icon: UsersRound },
+    { href: "/profile/password", label: "เปลี่ยนรหัสผ่าน", icon: KeyRound },
   ];
 
   return (

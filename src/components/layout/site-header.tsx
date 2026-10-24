@@ -17,7 +17,7 @@ const NAV = [
   { href: "/", label: "หน้าแรก" },
   { href: "/deposit", label: "ฝากเงิน", auth: true },
   { href: "/withdraw", label: "ถอนเงิน", auth: true },
-  { href: "/promotions", label: "โปรโมชั่น" },
+  { href: "/promotions", label: "โปรโมชั่น", auth: true },
   { href: "/wheel", label: "วงล้อ", auth: true },
   { href: "/coupons", label: "คูปอง", auth: true },
   { href: "/rewards", label: "ของรางวัล", auth: true },
@@ -25,7 +25,6 @@ const NAV = [
   { href: "/history", label: "ประวัติ", auth: true },
   { href: "/contact", label: "ติดต่อ" },
   { href: "/profile", label: "บัญชี", auth: true },
-  { href: "/login", label: "เข้าสู่ระบบ", guest: true },
 ];
 
 const linkCls = (active: boolean) =>
@@ -42,7 +41,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const { authenticated, loading } = useAuth();
   const [open, setOpen] = React.useState(false);
-  const items = NAV.filter((n) => (n.auth ? authenticated : n.guest ? !authenticated && !loading : true));
+  const items = NAV.filter((n) => !n.auth || authenticated);
   return (
     <header className="sticky top-0 z-40">
       <div className="overflow-hidden border-b border-gold-3 bg-felt whitespace-nowrap">
@@ -112,11 +111,18 @@ export function SiteHeader() {
             <ThemeDialog />
             {loading ? null : authenticated ? (
               <BalancePill />
-            ) : site.registration ? (
-              <Button asChild size="sm">
-                <Link href="/register">สมัครสมาชิก</Link>
-              </Button>
-            ) : null}
+            ) : (
+              <>
+                <Button asChild variant="soft" size="sm" className="font-bold">
+                  <Link href="/login">เข้าสู่ระบบ</Link>
+                </Button>
+                {site.registration && (
+                  <Button asChild size="sm">
+                    <Link href="/register">สมัครสมาชิก</Link>
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
