@@ -19,10 +19,10 @@ export type Promo = {
 export function normalizePromotions(data: unknown): { items: Promo[]; selectedId?: string } {
   const selectedId = pickStr(data, ["selected.pro_code", "selected.code", "selected_code", "current.pro_code", "selected_pro_code"]) || undefined;
   const items = asList<Dict>(data, ["promotions", "promotion"]).map((p) => {
-    const id = pickStr(p, ["pro_code", "code", "id"]);
+    const id = pickStr(p, ["code", "pro_code", "id"]);
     return {
       id,
-      title: pickStr(p, ["name_th", "name", "title", "pro_name"], "โปรโมชั่น"),
+      title: pickStr(p, ["name", "name_th", "title", "pro_name"], "โปรโมชั่น"),
       description: pickStr(p, ["description", "detail", "content", "remark"]),
       image: pickStr(p, ["image_url", "image", "banner", "filepic"]) || undefined,
       selected: Boolean(pick(p, ["selected", "is_selected", "active"], false)) || (!!selectedId && id === selectedId),
@@ -35,31 +35,38 @@ export function normalizePromotions(data: unknown): { items: Promo[]; selectedId
   return { items, selectedId };
 }
 
-export type DepositChannel = { id: string; name: string; type: string; description?: string; bankShort?: string };
+/** วิธีฝาก: bank (โอนธนาคาร) · tw (TrueMoney Wallet) · payment (ชำระออนไลน์/QR) — slip ยังไม่รองรับ (เอกสารไม่มี endpoint อัปโหลดสลิป) */
+export type DepositMethod = { id: "bank" | "tw" | "payment"; name: string; desc: string; mode: "bank" | "qr" };
 
-export function normalizeChannels(data: unknown): DepositChannel[] {
-  return asList<Dict>(data, ["channels"]).map((c) => ({
-    id: pickStr(c, ["code", "id", "channel", "key"]),
-    name: pickStr(c, ["name_th", "name", "title", "label"], "ช่องทางฝาก"),
-    type: pickStr(c, ["type", "method", "kind"]).toLowerCase(),
-    description: pickStr(c, ["description", "detail", "remark"]) || undefined,
-    bankShort: pickStr(c, ["bank_shortcode", "shortcode", "bank.shortcode"]) || undefined,
-  }));
+const METHODS: Record<string, Omit<DepositMethod, "id">> = {
+  bank: { name: "โอนผ่านธนาคาร", desc: "โอนเข้าบัญชีรับฝาก", mode: "bank" },
+  tw: { name: "TrueMoney Wallet", desc: "โอนเข้าวอลเล็ต", mode: "bank" },
+  payment: { name: "ชำระออนไลน์ / QR", desc: "สร้างรายการฝากอัตโนมัติ", mode: "qr" },
+};
+
+export function normalizeMethods(data: unknown): DepositMethod[] {
+  return asList<Dict>(data, ["methods"])
+    .filter((m) => METHODS[pickStr(m, ["id"])] && Boolean(pick(m, ["available"], true)))
+    .sort((a, b) => Number(pick(a, ["sort"], 99)) - Number(pick(b, ["sort"], 99)))
+    .map((m) => ({ id: pickStr(m, ["id"]) as DepositMethod["id"], ...METHODS[pickStr(m, ["id"])] }));
 }
 
-export type DepositAccount = { bankName: string; bankShort: string; accNo: string; accName: string; qr?: string };
+export type DepositAccount = { code: string; bankName: string; bankShort: string; accNo: string; accName: string; qr?: string; minDeposit?: string; remark?: string };
 
-export function normalizeDepositAccount(data: unknown): DepositAccount | null {
-  const src = (pick(data, ["account", "bank_account", "deposit_account"]) as unknown) ?? data;
-  const accNo = pickStr(src, ["acc_no", "account_no", "account_number", "number"]);
-  if (!accNo) return null;
-  return {
-    bankName: pickStr(src, ["bank_name", "bank.name_th", "name_th", "bank"]),
-    bankShort: pickStr(src, ["bank_shortcode", "shortcode", "bank.shortcode"]),
-    accNo,
-    accName: pickStr(src, ["acc_name", "account_name", "name"]),
-    qr: pickStr(src, ["qr_image", "qrcode", "qr"]) || undefined,
-  };
+export function normalizeDepositAccounts(data: unknown): { accounts: DepositAccount[]; assignedCode?: string } {
+  const accounts = asList<Dict>(data, ["accounts"])
+    .map((a) => ({
+      code: pickStr(a, ["code", "id"]),
+      bankName: pickStr(a, ["bank_name", "name_th"]),
+      bankShort: pickStr(a, ["shortcode", "bank_shortcode"]),
+      accNo: pickStr(a, ["acc_no", "account_no"]),
+      accName: pickStr(a, ["acc_name", "account_name"]),
+      qr: Boolean(pick(a, ["qrcode"], false)) ? pickStr(a, ["qr_pic", "qr_image"]) || undefined : undefined,
+      minDeposit: pickStr(a, ["deposit_min"]) || undefined,
+      remark: pickStr(a, ["remark"]) || undefined,
+    }))
+    .filter((a) => a.accNo);
+  return { accounts, assignedCode: pickStr(data, ["account.code"]) || undefined };
 }
 
 export type Payment = {
@@ -74,12 +81,12 @@ export type Payment = {
 
 export function normalizePayment(data: unknown): Payment {
   return {
-    ref: pickStr(data, ["ref", "reference", "transaction_id", "txn_id", "id", "order_id", "payment.ref"]),
+    ref: pickStr(data, ["transaction_id", "ref", "reference", "txn_id", "id", "order_id", "payment.ref"]),
     amount: pickStr(data, ["amount", "payment.amount"]),
     status: pickStr(data, ["status", "state", "payment.status"], "PENDING").toUpperCase(),
     qrImage: pickStr(data, ["qr_image", "qr_image_url", "qrcode_url", "qr_url", "payment.qr_image"]) || undefined,
     qrText: pickStr(data, ["qr_text", "qrcode", "qr_code", "promptpay_payload", "payment.qr_text"]) || undefined,
-    payUrl: pickStr(data, ["pay_url", "payment_url", "url", "redirect_url"]) || undefined,
+    payUrl: pickStr(data, ["checkout_url", "pay_url", "payment_url", "url", "redirect_url"]) || undefined,
     expiresAt: pickStr(data, ["expired_at", "expires_at", "expire_at"]) || undefined,
   };
 }
@@ -99,7 +106,7 @@ export function normalizeTxns(data: unknown): Txn[] {
     id: pickStr(t, ["id", "code", "transaction_id", "bill_code"]),
     amount: pickStr(t, ["amount", "value", "credit"]),
     status: pickStr(t, ["status_display", "status", "state"]),
-    createdAt: pickStr(t, ["created_at", "date_create", "date", "time"]),
+    createdAt: pickStr(t, ["recorded_at", "created_at", "date_create", "date", "time"]),
     channel: pickStr(t, ["channel", "bank_name", "bank", "method"]) || undefined,
     note: pickStr(t, ["remark", "note", "description"]) || undefined,
   }));
@@ -119,27 +126,30 @@ export function txnLabel(status: string) {
   return tone === "success" ? "สำเร็จ" : tone === "destructive" ? "ไม่สำเร็จ" : tone === "warning" ? "รอดำเนินการ" : status || "—";
 }
 
-export type WheelPrize = { label: string; color?: string };
+export type WheelPrize = { label: string; color?: string; code?: string; image?: string };
 export type Wheel = { id: string; name: string; spinsLeft?: number; prizes: WheelPrize[]; description?: string };
 
+/** /wheel/list คืนวงล้อเดียว: wheel[] คือช่องรางวัลแต่ละช่อง (text, code, amount, fillStyle) */
 export function normalizeWheels(data: unknown): Wheel[] {
-  return asList<Dict>(data, ["wheels"]).map((w) => ({
-    id: pickStr(w, ["code", "id", "wheel_code"]),
-    name: pickStr(w, ["name", "title"], "วงล้อนำโชค"),
-    description: pickStr(w, ["description", "condition", "detail"]) || undefined,
-    spinsLeft: pick(w, ["spins_left", "remaining", "quota", "spin_left", "available_spins"]) !== undefined ? Number(pick(w, ["spins_left", "remaining", "quota", "spin_left", "available_spins"])) : undefined,
-    prizes: asList<Dict>(pick(w, ["rewards", "prizes", "items", "segments"]) ?? []).map((p) => ({
-      label: pickStr(p, ["label", "name", "title", "amount"], "?"),
-      color: pickStr(p, ["color"]) || undefined,
-    })),
+  if (!Boolean(pick(data, ["enabled"], true))) return [];
+  const prizes = asList<Dict>(data, ["wheel"]).map((p) => ({
+    label: pickStr(p, ["text", "name", "amount"], "?"),
+    color: pickStr(p, ["fillStyle", "spincolor"]) || undefined,
+    code: pickStr(p, ["code"]) || undefined,
+    image: pickStr(p, ["image", "img", "image_url", "icon", "picture"]) || undefined,
   }));
+  return prizes.length ? [{ id: "main", name: "วงล้อนำโชค", prizes }] : [];
 }
 
+/** ผลหมุน: spin{code,types,amount} + format{title,msg,...} */
 export function normalizeSpin(data: unknown) {
   return {
-    label: pickStr(data, ["reward.label", "reward.name", "prize.name", "label", "name", "reward_name"], "รางวัล"),
-    amount: pickStr(data, ["reward.amount", "amount", "prize.amount", "value"]),
-    index: pick<number>(data, ["index", "reward_index", "segment", "position"]),
+    code: pickStr(data, ["spin.code"]) || undefined,
+    label: pickStr(data, ["format.title", "spin.types"], "รางวัล"),
+    amount: pickStr(data, ["spin.amount"]),
+    msg: pickStr(data, ["format.msg"]) || undefined,
+    /** มุมที่ Winwheel ต้องหยุด (เซิร์ฟเวอร์กำหนด) */
+    point: typeof pick(data, ["format.point"]) === "number" ? (pick(data, ["format.point"]) as number) : undefined,
   };
 }
 
@@ -150,9 +160,9 @@ export function normalizeCoupons(data: unknown): Coupon[] {
     const status = pickStr(c, ["status", "state"]).toUpperCase();
     return {
       code: pickStr(c, ["code", "coupon_code", "id"]),
-      title: pickStr(c, ["name", "title", "description"], "คูปอง"),
+      title: pickStr(c, ["name", "title", "description", "type"], "คูปอง"),
       status,
-      expiresAt: pickStr(c, ["expired_at", "expires_at", "expire_date"]) || undefined,
+      expiresAt: pickStr(c, ["date_expire", "expired_at", "expires_at", "expire_date"]) || undefined,
       value: pickStr(c, ["amount", "value", "credit"]) || undefined,
       claimable: Boolean(pick(c, ["claimable", "can_claim"], !/USED|CLAIMED|EXPIRED/.test(status))),
     };
@@ -163,11 +173,11 @@ export type Reward = { id: string; title: string; cost?: string; image?: string;
 
 export function normalizeRewards(data: unknown): { items: Reward[]; points?: string } {
   return {
-    points: pickStr(data, ["points", "point", "my_points", "balance"]) || undefined,
+    points: pickStr(data, ["diamond", "points", "point", "my_points", "balance"]) || undefined,
     items: asList<Dict>(data, ["rewards"]).map((r) => ({
-      id: pickStr(r, ["code", "id", "reward_code"]),
+      id: pickStr(r, ["id", "reward_id", "code"]),
       title: pickStr(r, ["name", "title"], "ของรางวัล"),
-      cost: pickStr(r, ["point", "points", "cost", "price"]) || undefined,
+      cost: pickStr(r, ["point_cost", "point", "points", "cost", "price"]) || undefined,
       image: pickStr(r, ["image_url", "image", "filepic"]) || undefined,
       description: pickStr(r, ["description", "detail"]) || undefined,
       available: Boolean(pick(r, ["available", "can_redeem", "enable"], true)),

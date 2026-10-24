@@ -60,10 +60,10 @@ export function BonusWalletCard({ compact = false }: { compact?: boolean }) {
             <Badge variant="success">พร้อมโยก</Badge>
           ) : null}
         </div>
-        <div className={compact ? "grid grid-cols-4 gap-2 text-center" : "grid grid-cols-2 gap-3 sm:grid-cols-4"}>
+        <div className={compact ? "grid grid-cols-2 gap-2 text-center sm:grid-cols-4" : "grid grid-cols-2 gap-3 sm:grid-cols-4"}>
           {items.map((i) => (
-            <div key={i.k} className="rounded-2xl bg-secondary px-2 py-2.5">
-              <div className="text-xs text-muted-foreground">{i.k}</div>
+            <div key={i.k} className="flex flex-col items-center justify-center gap-0.5 rounded-2xl bg-secondary px-2 py-2.5">
+              <div className="text-xs whitespace-nowrap text-muted-foreground">{i.k}</div>
               <div className="font-deco font-black text-brand tabular-nums">{baht(i.v, false)}</div>
             </div>
           ))}

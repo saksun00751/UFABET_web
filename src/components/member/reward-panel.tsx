@@ -34,7 +34,7 @@ export function RewardPanel() {
   }
 
   const history = asList(hist.data).map((h) => ({
-    name: pickStr(h, ["reward_name", "name", "title"], "ของรางวัล"),
+    name: pickStr(h, ["reward_name", "name", "title"]) || items.find((r) => r.id === pickStr(h, ["reward_id"]))?.title || "ของรางวัล",
     at: pickStr(h, ["created_at", "date"]),
     status: pickStr(h, ["status"]),
   }));

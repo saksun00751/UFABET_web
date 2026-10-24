@@ -2,7 +2,7 @@
 import useSWRInfinite from "swr/infinite";
 import { ArrowDown, ArrowUp, Inbox, Loader2 } from "lucide-react";
 import { normalizeTxns, txnLabel, txnTone } from "@/lib/api/normalize";
-import { asPage } from "@/lib/api/shape";
+import { pick } from "@/lib/api/shape";
 import { errorMessage } from "@/lib/api/errors";
 import { baht, thaiDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
@@ -10,17 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export function TxnList({ kind, fetcher }: { kind: "deposit" | "withdraw"; fetcher: (page: number) => Promise<unknown> }) {
+/** แบ่งหน้าแบบ cursor: ใช้ next_before ของหน้าก่อนหน้าเป็น before ของหน้าถัดไป */
+export function TxnList({ kind, scope = "", fetcher }: { kind: "deposit" | "withdraw"; scope?: string; fetcher: (before?: string | number) => Promise<unknown> }) {
   const { data, error, size, setSize, isLoading, isValidating } = useSWRInfinite(
     (i, prev) => {
-      if (prev && !asPage(prev, i).hasMore) return null;
-      return [`txn-${kind}`, i + 1];
+      if (prev && !pick(prev, ["has_more"], false)) return null;
+      return [`txn-${kind}-${scope}`, i === 0 ? null : pick<string | number>(prev, ["next_before"]) ?? null];
     },
-    ([, page]) => fetcher(page as number),
+    ([, before]) => fetcher((before as string | number | null) ?? undefined),
   );
   const rows = (data ?? []).flatMap((d) => normalizeTxns(d));
   const last = data?.[data.length - 1];
-  const hasMore = last ? asPage(last, size).hasMore : false;
+  const hasMore = last ? Boolean(pick(last, ["has_more"], false)) : false;
   const Icon = kind === "deposit" ? ArrowDown : ArrowUp;
 
   if (isLoading)

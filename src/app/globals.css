@@ -113,3 +113,10 @@
   &:hover { animation-play-state: paused; }
   @media (prefers-reduced-motion: reduce) { animation: none; }
 }
+
+/* วงล้อ (Winwheel) — รูปพื้นหลังกำหนดความสูง กรอบวงล้อจัดกึ่งกลางทับ จึงไม่ล้นการ์ด */
+.rng-canvas-container { position: relative; width: 100%; max-width: 360px; margin: 0 auto; }
+.rng-canvas-bg { display: block; width: 100%; height: auto; pointer-events: none; }
+.rng-canvas-stage { position: absolute; top: 50%; left: 0; width: 100%; aspect-ratio: 1; transform: translateY(-50%); }
+.rng-canvas-canvas { display: block; width: 100%; aspect-ratio: 1; }
+.rng-canvas-pointer { position: absolute; left: 50%; top: -14px; transform: translateX(-50%); z-index: 10; }

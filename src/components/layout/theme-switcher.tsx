@@ -3,6 +3,7 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 import { Moon, Palette, Sun, Check } from "lucide-react";
 import { THEME_PRESETS } from "@/lib/themes";
+import { site } from "@/lib/site";
 import { useThemePreset } from "@/components/providers/theme-preset";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -62,6 +63,7 @@ export function ThemePresetGrid({ onPick }: { onPick?: () => void }) {
 export function ThemeDialog({ trigger }: { trigger?: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const { resolvedTheme, setTheme } = useTheme();
+  if (!site.themeSwitcher) return null;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

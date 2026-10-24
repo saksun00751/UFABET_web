@@ -2,10 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowDownToLine, ArrowUpFromLine, Gamepad2, Headset, House, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth";
 import { useGameLaunch } from "@/hooks/use-member";
-import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 const itemCls = (active: boolean) =>
@@ -45,17 +43,10 @@ export function BottomNav() {
           <ArrowUpFromLine className="size-6" />
           ถอน
         </Link>
-        {site.supportUrl ? (
-          <a href={site.supportUrl} target="_blank" rel="noreferrer" className={itemCls(false)}>
-            <Headset className="size-6" />
-            ติดต่อ
-          </a>
-        ) : (
-          <button type="button" onClick={() => toast.info("ยังไม่ได้ตั้งค่าช่องทางติดต่อ")} className={itemCls(false)}>
-            <Headset className="size-6" />
-            ติดต่อ
-          </button>
-        )}
+        <Link href="/contact" className={itemCls(pathname.startsWith("/contact"))}>
+          <Headset className="size-6" />
+          ติดต่อ
+        </Link>
       </div>
     </nav>
   );

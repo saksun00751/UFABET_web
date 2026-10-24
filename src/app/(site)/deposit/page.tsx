@@ -6,13 +6,13 @@ import { Building2, CheckCircle2, Clock, Info, Loader2, QrCode, RefreshCw, Shuff
 import { toast } from "sonner";
 import { deposit, promotion } from "@/lib/api/member";
 import {
-  normalizeChannels,
-  normalizeDepositAccount,
+  normalizeDepositAccounts,
+  normalizeMethods,
   normalizePayment,
   normalizePromotions,
   paymentState,
   type DepositAccount,
-  type DepositChannel,
+  type DepositMethod,
   type Payment,
 } from "@/lib/api/normalize";
 import { errorMessage } from "@/lib/api/errors";
@@ -39,28 +39,16 @@ export default function DepositPage() {
   );
 }
 
-type Mode = "bank" | "qr";
-
-function channelMode(c: DepositChannel): Mode {
-  return /qr|promptpay|adminpay|payment|gateway/.test(`${c.type} ${c.name}`.toLowerCase()) ? "qr" : "bank";
-}
-
 function Deposit() {
   const { mutate: gm } = useSWRConfig();
   const channelsSWR = useSWR("deposit/channels", deposit.channels);
   const promoSWR = useSWR("promotion/list", promotion.list);
   const selectedPromo = normalizePromotions(promoSWR.data).items.find((p) => p.selected);
 
-  const channels = normalizeChannels(channelsSWR.data);
-  const options: { key: string; mode: Mode; name: string; desc: string; channel?: DepositChannel }[] = channels.length
-    ? channels.map((c) => ({ key: c.id || c.name, mode: channelMode(c), name: c.name, desc: c.description ?? (channelMode(c) === "qr" ? "สร้าง QR อัตโนมัติ" : "โอนเข้าบัญชีรับฝาก"), channel: c }))
-    : [
-        { key: "bank", mode: "bank", name: "โอนผ่านธนาคาร", desc: "ระบบเลือกบัญชีรับฝากให้" },
-        { key: "qr", mode: "qr", name: "QR พร้อมเพย์", desc: "สร้างรายการฝากอัตโนมัติ" },
-      ];
+  const options = normalizeMethods(channelsSWR.data);
 
   const [picked, setPicked] = React.useState<string | null>(null);
-  const opt = options.find((o) => o.key === picked) ?? null;
+  const opt = options.find((o) => o.id === picked) ?? null;
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-5">
@@ -90,14 +78,14 @@ function Deposit() {
           <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="ช่องทางฝาก">
             {options.map((o) => {
               const Icon = o.mode === "qr" ? QrCode : Building2;
-              const on = o.key === picked;
+              const on = o.id === picked;
               return (
                 <button
-                  key={o.key}
+                  key={o.id}
                   type="button"
                   role="radio"
                   aria-checked={on}
-                  onClick={() => setPicked(o.key)}
+                  onClick={() => setPicked(o.id)}
                   className={cn(
                     "flex flex-col items-start gap-1.5 rounded-3xl border-2 p-4 text-left transition-colors",
                     on ? "bg-soft border-primary" : "border-border bg-card hover:border-edge",
@@ -112,35 +100,49 @@ function Deposit() {
           </div>
         )}
         {channelsSWR.error && <p className="text-sm text-destructive">{errorMessage(channelsSWR.error)}</p>}
+        {!channelsSWR.isLoading && !channelsSWR.error && options.length === 0 && <p className="text-sm text-muted-foreground">ยังไม่เปิดช่องทางฝากในขณะนี้</p>}
       </section>
 
-      {opt?.mode === "bank" && <BankTransfer key={opt.key} channel={opt.channel} />}
-      {opt?.mode === "qr" && <QrPayment key={opt.key} channel={opt.channel} onPaid={() => gm("member/balance")} />}
+      {opt?.mode === "bank" && <BankTransfer key={opt.id} method={opt.id} />}
+      {opt?.mode === "qr" && <QrPayment key={opt.id} onPaid={() => gm("member/balance")} />}
     </div>
   );
 }
 
-function BankTransfer({ channel }: { channel?: DepositChannel }) {
+function BankTransfer({ method }: { method: DepositMethod["id"] }) {
+  const accounts = React.useRef<DepositAccount[]>([]);
   const [acc, setAcc] = React.useState<DepositAccount | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);
 
+  // select = ดึงบัญชีทั้งหมดของวิธีนี้ + บัญชีที่ระบบกำหนดให้ · random = ให้ระบบสุ่ม แล้วหาบัญชีนั้นจากรายการเดิม
   const load = React.useCallback(
     async (random = false) => {
       setLoading(true);
       setErr(null);
       try {
-        const d = random || !channel?.id ? await deposit.selectRandom() : await deposit.select(channel.id);
-        const a = normalizeDepositAccount(d);
-        if (!a) throw new Error("NO_ACCOUNT");
-        setAcc(a);
+        let list = accounts.current;
+        let code: string | undefined;
+        if (random && list.length) {
+          const r = normalizeDepositAccounts(await deposit.selectRandom(method));
+          code = r.assignedCode;
+        } else {
+          const d = normalizeDepositAccounts(await deposit.select(method));
+          list = d.accounts;
+          code = d.assignedCode;
+          accounts.current = list;
+        }
+        const next = list.find((a) => a.code === code) ?? list[0];
+        if (!next) throw new Error("NO_ACCOUNT");
+        setAcc(next);
       } catch (e) {
         setErr(errorMessage(e, "ไม่พบบัญชีรับฝาก กรุณาลองใหม่"));
       } finally {
         setLoading(false);
       }
     },
-    [channel?.id],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [method],
   );
 
   React.useEffect(() => {
@@ -175,6 +177,8 @@ function BankTransfer({ channel }: { channel?: DepositChannel }) {
             <CopyButton value={acc.accNo.replace(/\D/g, "")} label="คัดลอกเลขบัญชี" />
           </div>
         ) : null}
+        {acc?.minDeposit && Number(acc.minDeposit) > 0 && <p className="text-sm text-ivory-muted">ฝากขั้นต่ำ {baht(acc.minDeposit)}</p>}
+        {acc?.remark && <p className="text-sm text-ivory-muted">{acc.remark}</p>}
         {acc?.qr && (
           <div className="flex justify-center">
             <QrImage src={acc.qr} />
@@ -189,7 +193,7 @@ function BankTransfer({ channel }: { channel?: DepositChannel }) {
   );
 }
 
-function QrPayment({ channel, onPaid }: { channel?: DepositChannel; onPaid: () => void }) {
+function QrPayment({ onPaid }: { onPaid: () => void }) {
   const [amount, setAmount] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [payment, setPayment] = React.useState<Payment | null>(null);
@@ -202,7 +206,7 @@ function QrPayment({ channel, onPaid }: { channel?: DepositChannel; onPaid: () =
     if (amountError) return;
     setBusy(true);
     try {
-      const d = await deposit.createPayment(toNumber(amount), channel?.id || undefined);
+      const d = await deposit.createPayment(toNumber(amount));
       setPayment(normalizePayment(d));
     } catch (e) {
       toast.error(errorMessage(e));
@@ -217,7 +221,7 @@ function QrPayment({ channel, onPaid }: { channel?: DepositChannel; onPaid: () =
   });
   React.useEffect(() => {
     if (!poll.data || !payment) return;
-    const next = normalizePayment({ ...payment, ...poll.data });
+    const next = normalizePayment({ ...payment, ...((poll.data as { order?: object }).order ?? poll.data) });
     if (paymentState(next.status) !== paymentState(payment.status)) {
       setPayment((p) => (p ? { ...p, status: next.status } : p));
       if (paymentState(next.status) === "success") {

@@ -37,10 +37,11 @@ function Withdraw() {
   const idem = useIdempotentKey("wd");
 
   const e = elig.data;
-  const eligible = Boolean(pick(e, ["eligible", "can_withdraw", "allowed"], true));
-  const reason = pickStr(e, ["reason", "message", "reason_th", "blocked_reason"]);
+  const eligible = Boolean(pick(e, ["can_submit_withdrawal", "eligible", "can_withdraw", "allowed"], true));
+  const reasons = (pick<unknown[]>(e, ["reasons"]) ?? []).map(String);
+  const reason = reasons.join(" · ") || pickStr(e, ["reason", "message", "reason_th", "blocked_reason"]);
   const min = toNumber(pick(e, ["min", "min_withdraw", "minimum", "limits.min"], 0));
-  const max = toNumber(pick(e, ["max", "max_withdraw", "maximum", "limits.max"], 0));
+  const max = toNumber(pick(e, ["max", "max_withdraw", "maximum", "limits.max", "daily_remaining"], 0));
   const available = toNumber(pick(e, ["available", "withdrawable", "amount_available", "balance"], balance));
   const turnNeed = toNumber(pick(e, ["turnover_required", "turnover.target", "turn_target"], 0));
   const turnDone = toNumber(pick(e, ["turnover_current", "turnover.current", "turn_current"], 0));
@@ -48,7 +49,7 @@ function Withdraw() {
 
   const bankSrc = pick(e, ["bank", "account"]) ?? profile.data;
   const bankShort = pickStr(bankSrc, ["bank_shortcode", "shortcode", "bank.shortcode", "bank_code"]);
-  const accNo = pickStr(bankSrc, ["acc_no_masked", "acc_no", "account_no"]);
+  const accNo = pickStr(bankSrc, ["account_masked", "acc_no_masked", "acc_no", "account_no"]);
   const accName = pickStr(bankSrc, ["account_name", "acc_name", "name"]) ||
     [pickStr(profile.data, ["firstname"]), pickStr(profile.data, ["lastname"])].filter(Boolean).join(" ");
 
@@ -70,7 +71,7 @@ function Withdraw() {
         setQuote({
           fee: toNumber(pick(q, ["fee", "charge", "fee_amount"], 0)),
           net: toNumber(pick(q, ["net", "net_amount", "receive", "amount_receive", "amount"], amt)),
-          note: pickStr(q, ["message", "note"]) || undefined,
+          note: (pick(q, ["can_submit_withdrawal"], true) ? undefined : (pick<unknown[]>(q, ["reasons"]) ?? []).map(String).join(" · ")) || pickStr(q, ["message", "note"]) || undefined,
         });
       } catch (err) {
         setQuote({ fee: 0, net: amt, note: errorMessage(err) });

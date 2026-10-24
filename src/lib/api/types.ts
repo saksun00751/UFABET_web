@@ -89,3 +89,5 @@ export type ReferralEarning = {
   created_at: string;
 };
 export type Paged<T> = { items?: T[]; data?: T[]; total: number; page: number; per_page: number; has_more: boolean };
+
+export type ContactChannel = { code: string | number; type: string; label: string; link: string; sort: number };

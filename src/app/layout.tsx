@@ -3,12 +3,17 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { themePresetScript } from "@/components/providers/theme-preset";
 import { DEFAULT_PRESET } from "@/lib/themes";
-import { site } from "@/lib/site";
+import { BrandProvider } from "@/components/providers/brand";
+import { getBranding } from "@/lib/api/branding";
 
-export const metadata: Metadata = {
-  title: { default: site.name, template: `%s · ${site.name}` },
-  description: "Royal Casino — คาสิโนออนไลน์ระดับพรีเมียม บาคาร่า สล็อต ยิงปลา เกมไพ่ และกีฬา",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const b = await getBranding();
+  return {
+    title: { default: b.name, template: `%s · ${b.name}` },
+    description: b.desc || "Royal Casino — คาสิโนออนไลน์ระดับพรีเมียม บาคาร่า สล็อต ยิงปลา เกมไพ่ และกีฬา",
+    ...(b.logo ? { icons: { icon: b.logo } } : {}),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -20,7 +25,8 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const brand = await getBranding();
   return (
     <html lang="th" data-theme={DEFAULT_PRESET} className="dark" suppressHydrationWarning>
       <head>
@@ -34,7 +40,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <BrandProvider value={{ name: brand.name, logo: brand.logo }}>
+          <Providers>{children}</Providers>
+        </BrandProvider>
       </body>
     </html>
   );

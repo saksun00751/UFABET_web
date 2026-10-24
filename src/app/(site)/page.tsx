@@ -72,8 +72,8 @@ function MemberHome() {
 
       <section className="grid grid-cols-4 gap-3 sm:gap-5">
         {[
-          { href: "/rewards", label: "วงล้อ", mono: "W" },
-          { href: "/rewards?tab=coupon", label: "คูปอง", mono: "CP" },
+          { href: "/wheel", label: "วงล้อ", mono: "W" },
+          { href: "/coupons", label: "คูปอง", mono: "CP" },
           { href: "/promotions", label: "โปรโมชั่น", mono: "%" },
           { href: "/referral", label: "แนะนำเพื่อน", mono: "FR" },
         ].map(({ href, label, mono }) => (

@@ -8,7 +8,6 @@ import { errorMessage } from "@/lib/api/errors";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { PageHeader } from "@/components/layout/page-header";
 import { PromoCard } from "@/components/member/promo-card";
-import { BonusWalletCard } from "@/components/member/bonus-wallet-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Gift } from "lucide-react";
 
@@ -40,8 +39,7 @@ function Promotions() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="โปรโมชั่น & โบนัส" />
-      <BonusWalletCard />
+      <PageHeader title="โปรโมชั่น" />
       {isLoading ? (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (

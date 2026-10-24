@@ -2,7 +2,7 @@
  * Member API v1 — ด้านที่ client component เรียกใช้ (signature เดิมทุกอย่าง)
  * ไม่ได้ยิง Laravel ตรง: ทุกฟังก์ชันเรียก Server Action `invoke` → endpoints.ts (server-only)
  * cookie/CSRF ของ Laravel อยู่ในเซสชันเข้ารหัสฝั่ง server เท่านั้น
- * เอกสาร: UFABET_API_DOC.html (Updated 22 Oct 2026) — ✅/⚠️ ดูที่ endpoints.ts
+ * เอกสาร: UFABET_API_DOC.html (Updated 23 Oct 2026) — ✅/⚠️ ดูที่ endpoints.ts
  */
 import { invoke } from "@/app/actions/api";
 import type { ops } from "./endpoints";
@@ -60,6 +60,10 @@ export const realtime = {
   auth: (socket_id: string, channel_name: string) => run("realtime.auth", socket_id, channel_name),
 };
 
+export const contact = {
+  channels: () => run("contact.channels"),
+};
+
 export const promotion = {
   list: () => run("promotion.list"),
   select: (code: string | number) => run("promotion.select", code),
@@ -68,10 +72,10 @@ export const promotion = {
 
 export const deposit = {
   channels: () => run("deposit.channels"),
-  select: (channel: string | number) => run("deposit.select", channel),
-  selectRandom: () => run("deposit.selectRandom"),
-  createPayment: (amount: number, channel?: string | number) => run("deposit.createPayment", amount, newIdempotencyKey("dep"), channel),
-  paymentStatus: (ref?: string) => run("deposit.paymentStatus", ref),
+  select: (method: string, bank_code?: number) => run("deposit.select", method, bank_code),
+  selectRandom: (method: string, bank_code?: number) => run("deposit.selectRandom", method, bank_code),
+  createPayment: (amount: number, provider?: string) => run("deposit.createPayment", amount, newIdempotencyKey("dep"), provider),
+  paymentStatus: (txid?: string) => run("deposit.paymentStatus", txid),
 };
 
 export const withdraw = {
@@ -82,20 +86,20 @@ export const withdraw = {
 };
 
 export const transactions = {
-  deposits: (page = 1, per_page = 20) => run("transactions.deposits", page, per_page),
-  withdrawals: (page = 1, per_page = 20) => run("transactions.withdrawals", page, per_page),
+  deposits: (before?: number | string) => run("transactions.deposits", before),
+  withdrawals: (mode: string, before?: number | string) => run("transactions.withdrawals", mode, before),
 };
 
 export const wheel = {
   list: () => run("wheel.list"),
-  history: (page = 1) => run("wheel.history", page),
-  spin: (wheel_code?: string | number) => run("wheel.spin", newIdempotencyKey("spin"), wheel_code),
+  history: () => run("wheel.history"),
+  spin: () => run("wheel.spin", newIdempotencyKey("spin")),
 };
 
 export const coupon = {
   my: () => run("coupon.my"),
-  redeem: (code: string) => run("coupon.redeem", code, newIdempotencyKey("cpn")),
-  claim: (code: string) => run("coupon.claim", code, newIdempotencyKey("cpc")),
+  redeem: (code: string) => run("coupon.redeem", code),
+  claim: (code: string) => run("coupon.claim", code),
 };
 
 export const reward = {

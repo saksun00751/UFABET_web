@@ -12,6 +12,7 @@ import { PasswordInput } from "@/components/form/password-input";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { digitsOnly } from "@/lib/format";
+import { site } from "@/lib/site";
 import * as v from "@/lib/validate";
 import { useTouched } from "@/hooks/use-touched";
 
@@ -54,13 +55,6 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-md flex-col gap-5" noValidate>
-      <div className="grid grid-cols-2 gap-1.5 rounded-full border border-line-strong p-1.5">
-        <span className="bg-foil flex h-12 items-center justify-center rounded-full font-display text-[17px] font-bold text-primary-foreground">เข้าสู่ระบบ</span>
-        <Link href="/register" className="flex h-12 items-center justify-center rounded-full font-display text-[17px] font-semibold text-muted-foreground hover:text-foreground">
-          สมัครสมาชิก
-        </Link>
-      </div>
-
       <h1 className="font-deco text-3xl font-black tracking-[0.08em] text-brand">SIGN IN</h1>
 
       <Field id="user_name" label="เบอร์โทรศัพท์ (ชื่อผู้ใช้)" error={show("user_name", errors.user_name) ?? fieldError(err, "user_name")}>
@@ -100,12 +94,14 @@ export function LoginForm() {
         เข้าสู่ระบบ
       </Button>
 
-      <p className="text-center text-[15px] text-muted-foreground">
-        ยังไม่มีบัญชี?{" "}
-        <Link href="/register" className="font-semibold text-brand">
-          สมัครสมาชิก
-        </Link>
-      </p>
+      {site.registration && (
+        <p className="text-center text-[15px] text-muted-foreground">
+          ยังไม่มีบัญชี?{" "}
+          <Link href="/register" className="font-semibold text-brand">
+            สมัครสมาชิก
+          </Link>
+        </p>
+      )}
     </form>
   );
 }

@@ -14,6 +14,7 @@ import { PasswordInput } from "@/components/form/password-input";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BankChip } from "@/components/bank-chip";
 import { digitsOnly } from "@/lib/format";
@@ -180,13 +181,6 @@ export function RegisterForm() {
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-5">
-      <div className="grid grid-cols-2 gap-1.5 rounded-full border border-line-strong p-1.5">
-        <Link href="/login" className="flex h-12 items-center justify-center rounded-full font-display text-[17px] font-semibold text-muted-foreground hover:text-foreground">
-          เข้าสู่ระบบ
-        </Link>
-        <span className="bg-foil flex h-12 items-center justify-center rounded-full font-display text-[17px] font-bold text-primary-foreground">สมัครสมาชิก</span>
-      </div>
-
       <h1 className="font-deco text-3xl font-black tracking-[0.08em] text-brand">REGISTER</h1>
 
       <ol className="grid grid-cols-3 gap-2" aria-label="ขั้นตอนการสมัคร">
@@ -208,34 +202,33 @@ export function RegisterForm() {
       {step === 1 && (
         <section className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold">เลือกธนาคาร</span>
+            <label htmlFor="bank" className="text-sm font-semibold">ธนาคาร</label>
             {banksSWR.isLoading ? (
-              <div className="grid grid-cols-4 gap-2.5">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="h-20" />
-                ))}
-              </div>
+              <Skeleton className="h-13 rounded-2xl" />
             ) : banksSWR.error ? (
               <p className="text-sm text-destructive">{errorMessage(banksSWR.error)}</p>
             ) : (
-              <div className="grid grid-cols-4 gap-2.5 sm:grid-cols-5" role="radiogroup" aria-label="ธนาคาร">
-                {banks.map((b) => (
-                  <button
-                    key={b.code}
-                    type="button"
-                    role="radio"
-                    aria-checked={bank === b.code}
-                    onClick={() => setBank(b.code)}
-                    className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-2xl border-2 bg-secondary px-1 py-2.5 transition-colors",
-                      bank === b.code ? "border-primary" : "border-transparent hover:border-border",
-                    )}
-                  >
-                    <BankChip shortcode={b.shortcode} className="size-10 rounded-full" />
-                    <span className="line-clamp-1 text-[11px] text-muted-foreground">{b.name_th}</span>
-                  </button>
-                ))}
-              </div>
+              <Select
+                value={bank ? String(bank) : ""}
+                onValueChange={(v) => {
+                  setBank(Number(v));
+                  touch("bank");
+                }}
+              >
+                <SelectTrigger id="bank" aria-label="ธนาคาร" aria-invalid={show("bank", e1.bank) ? true : undefined}>
+                  <SelectValue placeholder="เลือกธนาคาร" className="min-w-0 flex-1 truncate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {banks.map((b) => (
+                    <SelectItem key={b.code} value={String(b.code)}>
+                      <span className="flex min-w-0 items-center gap-3">
+                        <BankChip shortcode={b.shortcode} className="size-10 rounded-full" />
+                        <span className="truncate">{b.name_th}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             {(show("bank", e1.bank) ?? fieldError(err, "bank")) && (
               <p role="alert" className="text-sm text-destructive">
@@ -317,7 +310,7 @@ export function RegisterForm() {
               aria-invalid={show("user_name", e2.user_name) ? true : undefined}
             />
           </Field>
-          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 8 ตัวอักษร" error={show("password", e2.password) ?? fieldError(err, "password")}>
+          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 6 ตัวอักษร" error={show("password", e2.password) ?? fieldError(err, "password")}>
             <PasswordInput
               id="reg_pw"
               autoComplete="new-password"
@@ -409,6 +402,13 @@ export function RegisterForm() {
           <p className="text-center text-sm text-muted-foreground">สมัครสำเร็จระบบจะเข้าสู่ระบบให้ทันที</p>
         </section>
       )}
+
+      <p className="text-center text-[15px] text-muted-foreground">
+        มีบัญชีอยู่แล้ว?{" "}
+        <Link href="/login" className="font-semibold text-brand">
+          เข้าสู่ระบบ
+        </Link>
+      </p>
     </div>
   );
 }

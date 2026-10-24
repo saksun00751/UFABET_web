@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, History, LogOut, Sparkles, UsersRound, Wallet, Headset } from "lucide-react";
+import { ChevronRight, History, LogOut, Sparkles, Ticket, Gift, UsersRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth";
@@ -33,16 +33,26 @@ function Profile() {
   const { data, isLoading } = useProfile();
   const { resolvedTheme, setTheme } = useTheme();
 
-  const name = [pickStr(data, ["firstname", "first_name"]), pickStr(data, ["lastname", "last_name"])].filter(Boolean).join(" ");
-  const bankShort = pickStr(data, ["bank_shortcode", "bank.shortcode", "bank_name"]);
-  const accNo = pickStr(data, ["acc_no_masked", "acc_no", "account_no"]);
-  const level = pickStr(data, ["level", "vip_level", "rank", "member_level"]);
+  const name = pickStr(data, ["profile.name"]);
+  const bankShort = pickStr(data, ["profile.bank.shortcode"]);
+  const bankName = pickStr(data, ["profile.bank.name_th"]);
+  const accNo = pickStr(data, ["profile.bank.account_masked"]);
+  const registered = pickStr(data, ["profile.registered_on"]);
+  const info = [
+    { label: "รหัสสมาชิก", value: pickStr(data, ["profile.code"], member?.code ? String(member.code) : "") },
+    { label: "วันที่สมัคร", value: registered ? new Date(registered).toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" }) : "" },
+    { label: "แต้มสะสม", value: pickStr(data, ["profile.rewards.points"]) },
+    { label: "เพชร", value: pickStr(data, ["profile.rewards.diamonds"]) },
+    { label: "แคชแบ็ก", value: pickStr(data, ["profile.rewards.cashback"]) },
+    { label: "รายได้จากการแนะนำ", value: pickStr(data, ["profile.rewards.referral_income"]) },
+  ].filter((r) => r.value);
 
   const links = [
     { href: "/history", label: "ประวัติฝาก-ถอน", icon: History },
-    { href: "/rewards", label: "วงล้อ คูปอง ของรางวัล", icon: Sparkles },
+    { href: "/wheel", label: "วงล้อนำโชค", icon: Sparkles },
+    { href: "/coupons", label: "คูปอง", icon: Ticket },
+    { href: "/rewards", label: "ของรางวัล", icon: Gift },
     { href: "/referral", label: "แนะนำเพื่อน", icon: UsersRound },
-    { href: "/withdraw", label: "ถอนเงิน", icon: Wallet },
   ];
 
   return (
@@ -51,25 +61,23 @@ function Profile() {
       <div className="grid gap-5 md:grid-cols-2">
         <Card className="bg-felt border-gold-2">
           <CardContent className="flex flex-col gap-4">
-            <div className="font-deco text-[11px] font-bold tracking-[0.3em] text-gold-2">ROYAL MEMBER CARD</div>
             <div className="flex items-center gap-4">
               <span className="bg-foil chip flex size-16 items-center justify-center font-deco text-2xl font-black text-primary-foreground" style={{ ["--chip-gap" as string]: "var(--felt)" }}>
                 {(name || member?.user_name || "M").slice(0, 1)}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-display text-xl font-semibold text-ivory">{isLoading ? "…" : name || maskPhone(member?.user_name)}</div>
-                <div className="font-deco text-sm tracking-wider text-ivory-muted">{maskPhone(member?.user_name)} · Nº {member?.code}</div>
+                <div className="font-deco text-sm tracking-wider text-ivory-muted">{maskPhone(member?.user_name)}</div>
               </div>
-              {level && <span className="bg-foil rounded-full px-3 py-1 font-deco text-xs font-black tracking-wide text-primary-foreground">{level}</span>}
-            </div>
+                          </div>
             {isLoading ? (
               <Skeleton className="h-16" />
             ) : (
               accNo && (
                 <div className="flex items-center gap-3 rounded-2xl border border-gold-2/40 p-3.5">
-                  <BankChip shortcode={bankShort} />
+                  {bankShort && <BankChip shortcode={bankShort} />}
                   <div>
-                    <div className="text-xs text-ivory-muted">บัญชีสำหรับถอน</div>
+                    <div className="text-xs text-ivory-muted">{bankName || "บัญชีสำหรับถอน"}</div>
                     <div className="font-deco font-bold tracking-wider text-gold-1">{accNo}</div>
                   </div>
                 </div>
@@ -77,29 +85,49 @@ function Profile() {
             )}
           </CardContent>
         </Card>
-        <BalanceCard />
+        <BalanceCard showPhone={false} showMember={false} />
       </div>
 
       <Card>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">ธีมและการแสดงผล</h2>
-            <div className="flex gap-1 rounded-full bg-secondary p-1">
-              {(["light", "dark"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setTheme(m)}
-                  className={cn("h-9 rounded-full px-4 text-sm font-semibold", resolvedTheme === m ? "bg-gold-grad text-primary-foreground" : "text-muted-foreground")}
-                >
-                  {m === "light" ? "สว่าง" : "มืด"}
-                </button>
+        <CardContent className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">ข้อมูลสมาชิก</h2>
+          {isLoading ? (
+            <Skeleton className="h-32" />
+          ) : (
+            <dl className="divide-y divide-border">
+              {info.map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between gap-4 py-2.5 text-sm">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="min-w-0 truncate font-medium">{value}</dd>
+                </div>
               ))}
-            </div>
-          </div>
-          <ThemePresetGrid />
+            </dl>
+          )}
         </CardContent>
       </Card>
+
+      {site.themeSwitcher && (
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">ธีมและการแสดงผล</h2>
+              <div className="flex gap-1 rounded-full bg-secondary p-1">
+                {(["light", "dark"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setTheme(m)}
+                    className={cn("h-9 rounded-full px-4 text-sm font-semibold", resolvedTheme === m ? "bg-gold-grad text-primary-foreground" : "text-muted-foreground")}
+                  >
+                    {m === "light" ? "สว่าง" : "มืด"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ThemePresetGrid />
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <ul className="divide-y divide-border">
@@ -112,15 +140,6 @@ function Profile() {
               </Link>
             </li>
           ))}
-          {site.supportUrl && (
-            <li>
-              <a href={site.supportUrl} target="_blank" rel="noreferrer" className="flex min-h-14 items-center gap-3 px-5 hover:bg-secondary">
-                <Headset className="size-5 text-brand" />
-                <span className="flex-1 font-medium">ติดต่อเจ้าหน้าที่</span>
-                <ChevronRight className="size-5 text-muted-foreground" />
-              </a>
-            </li>
-          )}
         </ul>
       </Card>
 
