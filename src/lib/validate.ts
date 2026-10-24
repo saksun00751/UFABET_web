@@ -10,7 +10,7 @@ export function phone(v: string, strict = true): Check {
   return v.length >= 9 ? undefined : "เบอร์โทรศัพท์ไม่ถูกต้อง";
 }
 
-export function password(v: string, min = 6): Check {
+export function password(v: string, min = 8): Check {
   if (!v) return "กรุณากรอกรหัสผ่าน";
   return v.length >= min ? undefined : `รหัสผ่านต้องมีอย่างน้อย ${min} ตัวอักษร`;
 }

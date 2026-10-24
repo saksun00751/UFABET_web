@@ -310,7 +310,7 @@ export function RegisterForm() {
               aria-invalid={show("user_name", e2.user_name) ? true : undefined}
             />
           </Field>
-          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 6 ตัวอักษร" error={show("password", e2.password) ?? fieldError(err, "password")}>
+          <Field id="reg_pw" label="รหัสผ่าน" hint="อย่างน้อย 8 ตัวอักษร" error={show("password", e2.password) ?? fieldError(err, "password")}>
             <PasswordInput
               id="reg_pw"
               autoComplete="new-password"
